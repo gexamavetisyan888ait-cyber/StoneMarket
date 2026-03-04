@@ -16,12 +16,10 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           
           <div className="flex flex-col leading-tight cursor-pointer">
-            <span className="text-2xl font-bold text-emerald-500 tracking-wide">
-              Stone Market
-            </span>
-            <span className="text-[10px] tracking-[3px] text-gray-500 uppercase">
-              Armenian Stones Sales
-            </span>
+            <img className="text-2xl font-bold text-emerald-500 tracking-wide" src="https://stonemarket.am/icons/logo-primary.svg"/>
+          
+            
+          
           </div>
 
           <nav className="hidden lg:flex items-center gap-8">
