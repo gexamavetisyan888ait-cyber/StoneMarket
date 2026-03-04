@@ -65,11 +65,6 @@ export default function Header() {
           </div>
         </div>
       </header>
-
-
-      <div className="p-10 text-center text-gray-500">
-        Page Content Here
-      </div>
     </div>
   );
 }
