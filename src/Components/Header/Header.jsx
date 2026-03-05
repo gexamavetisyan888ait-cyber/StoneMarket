@@ -1,24 +1,43 @@
 import React, { useState } from "react";
 import { FiSearch, FiUser, FiHeart, FiShoppingCart, FiMenu, FiX } from "react-icons/fi";
- 
+
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navLinks = [
-    { id: 1, title: "Գլխավոր", href: "/" },
-    { id: 2, title: "Խանութ", href: "/shop" },
-    { id: 3, title: "Բրենդներ", href: "/brands" },
-    { id: 4, title: "Մեր մասին", href: "/about" },
-    { id: 5, title: "Կապ", href: "/contact" },
+    {
+      id: 1,
+      title: "Գլխավոր",
+      href: "/"
+    },
+    {
+      id: 2,
+      title: "Խանութ",
+      href: "/shop"
+    },
+    {
+      id: 3,
+      title: "Բրենդներ",
+      href: "/brands"
+    },
+    {
+      id: 4,
+      title: "Մեր մասին",
+      href: "/about"
+    },
+    {
+      id: 5,
+      title: "Կապ",
+      href: "/contact"
+    },
   ];
 
-  
   return (
     <div className="bg-gray-50 sticky top-0 z-[100]">
       <header className="w-full bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
-          
+
           <div className="flex items-center">
             <a href="/">
               <img
@@ -44,7 +63,7 @@ export default function Header() {
           <div className="flex items-center gap-2 sm:gap-6">
 
             <div className="flex items-center gap-1 sm:gap-3">
-              
+
               <button className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full border border-gray-200 hover:border-emerald-500 hover:text-emerald-500 transition">
                 <FiSearch size={16} />
               </button>
