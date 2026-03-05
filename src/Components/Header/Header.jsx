@@ -11,15 +11,15 @@ export default function Header() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className=" bg-gray-50">
       <header className="w-full bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          
+
           <div className="flex flex-col leading-tight cursor-pointer">
-            <img className="text-2xl font-bold text-emerald-500 tracking-wide" src="https://stonemarket.am/icons/logo-primary.svg"/>
-          
-            
-          
+            <img className="text-2xl font-bold text-emerald-500 tracking-wide" src="https://stonemarket.am/icons/logo-primary.svg" />
+
+
+
           </div>
 
           <nav className="hidden lg:flex items-center gap-8">
@@ -35,7 +35,7 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center gap-6">
-            
+
             <div className="flex items-center gap-3">
               <button className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-300 hover:border-emerald-500 hover:text-emerald-500 transition">
                 <FiSearch size={18} />
