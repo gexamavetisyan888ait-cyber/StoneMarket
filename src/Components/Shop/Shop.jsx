@@ -3,7 +3,7 @@ import { ShoppingCart, Heart, Phone, MessageCircle } from 'lucide-react';
 
 const PRODUCTS = [
   { id: 1, code: 'N073', title: 'Բետոնե Սեղան N073', desc: 'Սեղան բետոնից՝ յուրահատուկ և արտահայտիչ դիզայնով։...', price: '600,000', img: 'https://stonemarket.am/_next/image?url=https%3A%2F%2Fapi.stonemarket.am%2F%C3%94%C2%BF%C3%95%C2%88%C3%94%C2%B4_N073-1--1772700511503.webp&w=3840&q=75' },
-  { id: 2, code: 'N097', title: 'Տրավերտինե հավաքածու N097', desc: 'Սեղան և նստարաններ բնական տրավերտին քարից՝ ...', price: '2,500,000', img: 'https://stonemarket.am/_next/image?url=https%3A%2F%2Fapi.stonemarket.am%2F%C3%94%C2%BF%C3%95%C2%88%C3%94%C2%B4_N097--1772606804540.webp&w=3840&q=75' },
+  { id: 2, code: 'N097', title: 'Տրավերտինե հավաքածու N097', desc:'Սեղան և նստարաններ բնական տրավերտին քարից՝ ...', price: '2,500,000', img: 'https://stonemarket.am/_next/image?url=https%3A%2F%2Fapi.stonemarket.am%2F%C3%94%C2%BF%C3%95%C2%88%C3%94%C2%B4_N097--1772606804540.webp&w=3840&q=75' },
   { id: 3, code: 'N093', title: 'Տրավերտինե դեկոր N093', desc: 'Սուրճի սեղան բնական տրավերտին քարից՝ յուրահատուկ և ժամանակակից դիզայնով։...', price: '100,000', img: 'https://stonemarket.am/_next/image?url=https%3A%2F%2Fapi.stonemarket.am%2F%C3%94%C2%BF%C3%95%C2%88%C3%94%C2%B4_N093--1772606461964.webp&w=3840&q=75' },
   { id: 4, code: 'N082', title: 'Բուշարդա N082', desc: 'Բնական տրավերտին քարից մոմակալ՝ նրբագեղ և ջերմ ձևավորմամբ։...', price: '120,000', img: 'https://stonemarket.am/_next/image?url=https%3A%2F%2Fapi.stonemarket.am%2F%C3%94%C2%BF%C3%95%C2%88%C3%94%C2%B4_N082--1772547557216.webp&w=3840&q=75' },
   { id: 5, code: 'N076', title: 'Բետոնե Սեղան N076', desc: 'Բնական տրավերտին քարից բաժակի տակդիրների հավաքածու՝ էլեգանտ և գործնական ձևավորմամբ։...', price: '600,000', img: 'https://stonemarket.am/_next/image?url=https%3A%2F%2Fapi.stonemarket.am%2F%C3%94%C2%BF%C3%95%C2%88%C3%94%C2%B4_N076--1772547139235.webp&w=3840&q=75' },
@@ -62,6 +62,7 @@ const ProductCard = ({ item }) => (
     </div>
   </div>
 );
+
 
 export default function StoneMarketGrid() {
   return (
