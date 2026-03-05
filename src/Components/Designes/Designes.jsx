@@ -95,19 +95,6 @@ export default function DesignersSection() {
           </button>
         </div>
       </div>
-
-      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 flex flex-col gap-2 sm:gap-3 z-50">
-        <button className="bg-[#00d084] p-2.5 sm:p-3 rounded-lg sm:rounded-xl shadow-lg hover:scale-110 active:scale-95 transition-transform text-white">
-          <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M6.62 10.79a15.15 15.15 0 006.59 6.59l2.2-2.2a1 1 0 011.11-.27 11.72 11.72 0 003.69.59 1 1 0 011 1V20a1 1 0 01-1 1A15 15 0 013 6a1 1 0 011-1h3.5a1 1 0 011 1 11.72 11.72 0 00.59 3.69 1 1 0 01-.27 1.11z" />
-          </svg>
-        </button>
-        <button className="bg-[#00d084] p-2.5 sm:p-3 rounded-lg sm:rounded-xl shadow-lg hover:scale-110 active:scale-95 transition-transform text-white">
-          <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
-          </svg>
-        </button>
-      </div>
     </div>
   );
 }
