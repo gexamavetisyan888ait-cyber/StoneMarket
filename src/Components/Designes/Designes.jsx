@@ -4,7 +4,7 @@ const designers = [
   {
     id: 1,
     title: "Unique Design",
-    description: " Ճարտարապետական ​​3D մոդելների մշակում ըստ ձեր գծագրերի և էսքիզների (ինտերիեր, էքստերիեր, կահույք): ...",
+    description: "Ճարտարապետական ​​3D մոդելների մշակում ըստ ձեր գծագրերի և էսքիզների (ինտերիեր, էքստերիեր, կահույք): ...",
     logo: "https://stonemarket.am/_next/image?url=https%3A%2F%2Fapi.stonemarket.am%2F1740466806085--Messenger_creation_4D4BF230-75CC-4580-A6C6-5B77D4AED49E.webp&w=3840&q=75"
   },
   {
@@ -52,8 +52,8 @@ const designers = [
 ];
 
 const DesignerCard = ({ designer }) => (
-  <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 p-4 flex flex-col cursor-pointer border border-gray-100">
-    <div className="w-full aspect-[16/10] bg-gray-50 rounded-lg overflow-hidden mb-4 flex items-center justify-center border border-gray-50">
+  <div className="group bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-3 sm:p-4 flex flex-col cursor-pointer border border-gray-100 h-full">
+    <div className="w-full aspect-[16/10] bg-gray-50 rounded-lg overflow-hidden mb-3 sm:mb-4 border border-gray-50">
       <img 
         src={designer.logo} 
         alt={designer.title} 
@@ -61,11 +61,11 @@ const DesignerCard = ({ designer }) => (
       />
     </div>
     
-    <div className="flex flex-col gap-2">
-      <h3 className="text-[13px] font-bold text-gray-900 uppercase leading-tight tracking-tight line-clamp-1">
+    <div className="flex flex-col gap-1.5 sm:gap-2">
+      <h3 className="text-[12px] sm:text-[13px] font-bold text-gray-900 uppercase leading-tight tracking-tight line-clamp-1">
         {designer.title}
       </h3>
-      <p className="text-[11px] text-gray-500 leading-relaxed line-clamp-2">
+      <p className="text-[10px] sm:text-[11px] text-gray-500 leading-relaxed line-clamp-2 min-h-[32px]">
         {designer.description}
       </p>
     </div>
@@ -74,36 +74,36 @@ const DesignerCard = ({ designer }) => (
 
 export default function DesignersSection() {
   return (
-    <div className="bg-[#f3f4f6]  py-12 px-6 font-sans">
+    <div className="bg-[#f3f4f6] py-8 sm:py-12 px-4 sm:px-6 font-sans">
       <div className="max-w-7xl mx-auto">
 
-        <div className="text-center mb-10">
-          <h2 className="text-2xl md:text-3xl font-black text-gray-900 uppercase tracking-tighter">
+        <div className="text-center mb-8 sm:mb-10">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 uppercase tracking-tighter">
             Դիզայներներ
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
           {designers.map((designer) => (
             <DesignerCard key={designer.id} designer={designer} />
           ))}
         </div>
 
         <div className="flex justify-center">
-          <button className="bg-[#00d084] hover:bg-[#00b070] text-white font-bold py-2.5 px-10 rounded-md transition-colors text-sm uppercase tracking-wide">
+          <button className="w-full sm:w-auto bg-[#00d084] hover:bg-[#00b070] text-white font-bold py-3 sm:py-2.5 px-10 rounded-md transition-colors text-xs sm:text-sm uppercase tracking-wide">
             Ավելին
           </button>
         </div>
       </div>
 
-      <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-50">
-        <button className="bg-[#00d084] p-3 rounded-xl shadow-lg hover:scale-110 transition-transform text-white">
-          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 flex flex-col gap-2 sm:gap-3 z-50">
+        <button className="bg-[#00d084] p-2.5 sm:p-3 rounded-lg sm:rounded-xl shadow-lg hover:scale-110 active:scale-95 transition-transform text-white">
+          <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24">
             <path d="M6.62 10.79a15.15 15.15 0 006.59 6.59l2.2-2.2a1 1 0 011.11-.27 11.72 11.72 0 003.69.59 1 1 0 011 1V20a1 1 0 01-1 1A15 15 0 013 6a1 1 0 011-1h3.5a1 1 0 011 1 11.72 11.72 0 00.59 3.69 1 1 0 01-.27 1.11z" />
           </svg>
         </button>
-        <button className="bg-[#00d084] p-3 rounded-xl shadow-lg hover:scale-110 transition-transform text-white">
-          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+        <button className="bg-[#00d084] p-2.5 sm:p-3 rounded-lg sm:rounded-xl shadow-lg hover:scale-110 active:scale-95 transition-transform text-white">
+          <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24">
             <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
           </svg>
         </button>
