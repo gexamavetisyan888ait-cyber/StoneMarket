@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { FiSearch, FiUser, FiHeart, FiShoppingCart, FiMenu, FiX } from "react-icons/fi";
+ 
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
