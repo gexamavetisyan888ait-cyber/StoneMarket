@@ -42,7 +42,7 @@ export default function PartnersSection() {
                     <h2 className="text-white text-2xl sm:text-3xl md:text-4xl font-bold uppercase tracking-[0.1em] sm:tracking-[0.2em] mb-4 sm:mb-8">
                         Մեր Գործընկերները
                     </h2>
-                    <p className="text-gray-199 text-xs sm:text-sm md:text-base leading-relaxed opacity-90 px-2">
+                    <p className="text-gray-200 text-xs sm:text-sm md:text-base leading-relaxed opacity-90 px-2">
                         Մեր գործընկերները ներկայացնում են բարձրորակ քարեր և կոպեր, որոնք առաջարկում են նորարարական լուծումներ: Յուրաքանչյուր գործընկեր կարևոր է մեր առաքելության համար՝ ստեղծել գեղեցիկ միջավայրեր, որտեղ քարերը պատմում են իրենց պատմությունները:
                     </p>
                 </header>
