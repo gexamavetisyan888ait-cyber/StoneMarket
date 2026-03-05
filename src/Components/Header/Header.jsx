@@ -13,6 +13,7 @@ export default function Header() {
     { id: 5, title: "Կապ", href: "/contact" },
   ];
 
+  
   return (
     <div className="bg-gray-50 sticky top-0 z-[100]">
       <header className="w-full bg-white border-b border-gray-200">
