@@ -19,7 +19,7 @@ export default function Header() {
     {
       id: 3,
       title: "Բրենդներ",
-      href: "/brands"
+      href: "/designers"
     },
     {
       id: 4,
