@@ -54,7 +54,7 @@ function Banner() {
 
 export default function App() {
     return (
-        <div className="bg-[#f8f9fa] min-h-screen py-6 px-4 md:px-12">
+        <div className="bg-[#f8f9fa] py-6 px-4 md:px-12">
             <div className="w-full mx-auto">
                 <div className="flex flex-col lg:flex-row gap-8">
                     <Sidebar />

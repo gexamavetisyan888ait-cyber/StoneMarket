@@ -65,8 +65,7 @@ const companies = [
 const CompanyCard = ({ company }) => {
     return (
         <div className="bg-white rounded-2xl shadow-md hover:shadow-xl transition overflow-hidden">
-            {/* Նկարի բլոկը՝ ամբողջ լայնությամբ */}
-            <div className="w-full h-40 bg-gray-100 flex items-center justify-center">
+            <div className="w-full h-55 bg-gray-100 flex items-center justify-center">
                 <img
                     src={company.img}
                     alt={company.name}
@@ -74,7 +73,6 @@ const CompanyCard = ({ company }) => {
                 />
             </div>
 
-            {/* Տեքստային բլոկը՝ padding-ով */}
             <div className="p-5">
                 <h3 className="font-semibold text-gray-800 mb-2">{company.name}</h3>
                 <p className="text-sm text-gray-500 line-clamp-3 leading-relaxed">
@@ -88,7 +86,7 @@ const CompanyCard = ({ company }) => {
 export default function App() {
     return (
         <div className="bg-gray-50 min-h-screen py-12 px-6">
-            <div className="max-w-7xl mx-auto">
+            <div className="max-w-8xl mx-auto">
                 <h1 className="text-4xl font-bold text-center text-gray-900 mb-12">
                     Դիզայներներ
                 </h1>
