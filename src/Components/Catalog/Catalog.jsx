@@ -1,7 +1,7 @@
 import React from "react";
 
 const menuItems = [
-    { name: "Բնական քար", icon: "🧱" },
+    { name: "Բնական քար", icon: "🚀" },
     { name: "Արհեստական քար", icon: "🪨" },
     { name: "Հաստոցներ", icon: "⚙️" },
     { name: "Քարամշակման գործիքներ", icon: "🛠️" },
