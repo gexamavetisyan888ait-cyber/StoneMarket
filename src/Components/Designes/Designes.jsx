@@ -1,55 +1,5 @@
 import React from 'react';
-
-const designers = [
-  {
-    id: 1,
-    title: "Unique Design",
-    description: "Ճարտարապետական ​​3D մոդելների մշակում ըստ ձեր գծագրերի և էսքիզների (ինտերիեր, էքստերիեր, կահույք): ...",
-    logo: "https://stonemarket.am/_next/image?url=https%3A%2F%2Fapi.stonemarket.am%2F1740466806085--Messenger_creation_4D4BF230-75CC-4580-A6C6-5B77D4AED49E.webp&w=3840&q=75"
-  },
-  {
-    id: 2,
-    title: "ARCHITECTUM LLC",
-    description: "1. Էսքիզային նախագծերի մշակում, ցուցադրական նյութերի պատրաստում...",
-    logo: "https://stonemarket.am/_next/image?url=https%3A%2F%2Fapi.stonemarket.am%2F1739358817839--WhatsApp_Image_2025-02-12_at_15.01.36_b320a8a6.webp&w=3840&q=75"
-  },
-  {
-    id: 3,
-    title: "LUMINAR studio",
-    description: "Նախագծման ընթացքում մեր փորձառու մասնագետները կիրառում են միմիայն առաջադեմ համակարգչային ծրագրեր՝...",
-    logo: "https://stonemarket.am/_next/image?url=https%3A%2F%2Fapi.stonemarket.am%2F1739528262438--WhatsApp_Image_2025-02-14_at_13.51.57_73d0dfcd.webp&w=3840&q=75"
-  },
-  {
-    id: 4,
-    title: "SILAS DESIGN AND CONSTRUCTION",
-    description: "SILAS DESIGN AND CONSTRUCTION հիմնադրվել է 2010 թվականին: Այն մասնագիտացված է բնակարանների, ...",
-    logo: "https://stonemarket.am/_next/image?url=https%3A%2F%2Fapi.stonemarket.am%2F1743664023548--photo_2025-04-03_11-05-29.webp&w=3840&q=75"
-  },
-  {
-    id: 5,
-    title: "ԻՄԵՋՄԵՆ Ինտերիեր-դիզայնի և...",
-    description: "ԻՄԵՅՋՄԵՆ արվեստանոցը հիմնադրվել է 1999 թվականին, ինտերիեր դիզայներ Միքայել Կարսյանի կողմից: ...",
-    logo: "https://stonemarket.am/_next/image?url=https%3A%2F%2Fapi.stonemarket.am%2F1739859337970--Logo_IMAGEMAN.webp&w=3840&q=75"
-  },
-  {
-    id: 6,
-    title: "ԴԱԱՊ ճարտարապետական արվեստանոց",
-    description: "ԴԱԱՊ ճարտարապետական արվեստանոցը նախկին «QC Architects»-ի համահիմնադիր ճարտարապետ Ալեքսանդր Դանիելյանի նոր բիզնես նախագիծն է:...",
-    logo: "https://stonemarket.am/_next/image?url=https%3A%2F%2Fapi.stonemarket.am%2F1739874444574--WhatsApp_Image_2025-02-18_at_14.15.03_101ceb94.webp&w=3840&q=75"
-  },
-  {
-    id: 7,
-    title: "ՆԵՐԳԱՂԹ ՃԱՐՏԱՐԱՊԵՏԱԿԱՆ...",
-    description: "Ներգաղթ ճարտարապետական արվեստանոցը հիմնադրվել է 2006թ․-ին։ Իր գործունեության ընթացքում ...",
-    logo: "https://stonemarket.am/_next/image?url=https%3A%2F%2Fapi.stonemarket.am%2F1740464484847--IMG_20250225_101526_731.webp&w=3840&q=75"
-  },
-  {
-    id: 8,
-    title: "Ջի-Էմ-Ջի Ինտերիերս",
-    description: " Ջի–Էմ–Ջի Ինթիրիորս ստուդիան հիմնադրվել է 2018 թվականին, ճարտարապետ- դիզայներ Գարրի Մակիչյանի կողմից: ...",
-    logo: "https://stonemarket.am/_next/image?url=https%3A%2F%2Fapi.stonemarket.am%2F1741863888966--Logo_16x10.webp&w=3840&q=75"
-  },
-];
+import { useRealtimeCollection } from "../../lib/hook";
 
 const DesignerCard = ({ designer }) => (
   <div className="group bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-3 sm:p-4 flex flex-col cursor-pointer border border-gray-100 h-full">
@@ -73,20 +23,27 @@ const DesignerCard = ({ designer }) => (
 );
 
 export default function DesignersSection() {
+
+  const { data: designers, loading, error } = useRealtimeCollection("db/designes");
+
   return (
     <div className="bg-[#f3f4f6] py-8 sm:py-12 px-4 sm:px-6 font-sans">
       <div className="max-w-8xl mx-auto">
-
         <div className="text-center mb-8 sm:mb-10">
           <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 uppercase tracking-tighter">
             Դիզայներներ
           </h2>
         </div>
 
+        {error && <p className="text-center text-red-500">Սխալ տվյալների բեռնման ժամանակ</p>}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
-          {designers.map((designer) => (
-            <DesignerCard key={designer.id} designer={designer} />
-          ))}
+          {loading 
+            ? Array(4).fill(0).map((_, i) => <div key={i} className="h-64 bg-gray-200 animate-pulse rounded-xl" />)
+            : designers.map((designer) => (
+                <DesignerCard key={designer.id} designer={designer} />
+              ))
+          }
         </div>
 
         <div className="flex justify-center">
