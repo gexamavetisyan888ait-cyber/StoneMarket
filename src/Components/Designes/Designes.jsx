@@ -23,7 +23,7 @@ const DesignerCard = ({ designer }) => (
 );
 
 export default function DesignersSection() {
-
+  // Hook usage: 'designers' is the database path
   const { data: designers, loading, error } = useRealtimeCollection("db/designes");
 
   return (
