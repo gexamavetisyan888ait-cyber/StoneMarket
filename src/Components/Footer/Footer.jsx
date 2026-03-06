@@ -12,7 +12,7 @@ export default function App() {
 
             <section className="w-full mx-auto px-6 py-5 flex gap-10 h-[500px]">
 
-                
+
                 <div className="bg-[#0c2430] border border-white/10 rounded-2xl px-5 py-2 shadow-xl w-[80%] ">
                     <h2 className="text-2xl font-semibold mb-2">Կապվեք մեզ հետ</h2>
                     <p className="text-gray-400 text-sm mb-4">
@@ -161,9 +161,9 @@ export default function App() {
                 <button className="w-16 h-16 bg-emerald-500 hover:bg-emerald-600 rounded-2xl flex items-center justify-center shadow-xl">
                     <FiPhone size={22} />
                 </button>
-                <button className="w-16 h-16 bg-emerald-500 hover:bg-emerald-600 rounded-2xl flex items-center justify-center shadow-xl">
+                <a className="w-16 h-16 bg-emerald-500 hover:bg-emerald-600 rounded-2xl flex items-center justify-center shadow-xl" href="/chat">
                     <FiMessageCircle size={22} />
-                </button>
+                </a>
             </div>
 
         </div>
