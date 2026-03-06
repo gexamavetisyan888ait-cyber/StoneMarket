@@ -38,7 +38,7 @@ export default function ContactSection (){
   return (
 
     <section className="bg-[#f5f5f5] py-16 px-4">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-8xl mx-auto">
         <h2 className="text-4xl font-bold text-center mb-12 tracking-wider text-slate-800">
           ԿՈՆՏԱԿՏՆԵՐ
         </h2>

@@ -31,7 +31,7 @@ export default function PartnersSection() {
 
     return (
         <section
-            className="relative w-full py-12 sm:py-24 px-4 sm:px-6 bg-cover bg-center bg-no-repeat"
+            className="relative max-w-8xl py-12 sm:py-24 px-4 sm:px-6 bg-cover bg-center bg-no-repeat"
             style={{ backgroundImage: `url('${bgUrl}')` }}
         >
             <div className="absolute inset-0 bg-black/60"></div>

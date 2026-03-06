@@ -65,7 +65,7 @@ const companies = [
 const CompanyCard = ({ company }) => {
     return (
         <div className="bg-white rounded-2xl shadow-md hover:shadow-xl transition overflow-hidden">
-            <div className="w-full h-55 bg-gray-100 flex items-center justify-center">
+            <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
                 <img
                     src={company.img}
                     alt={company.name}

@@ -75,7 +75,7 @@ const DesignerCard = ({ designer }) => (
 export default function DesignersSection() {
   return (
     <div className="bg-[#f3f4f6] py-8 sm:py-12 px-4 sm:px-6 font-sans">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-8xl mx-auto">
 
         <div className="text-center mb-8 sm:mb-10">
           <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 uppercase tracking-tighter">

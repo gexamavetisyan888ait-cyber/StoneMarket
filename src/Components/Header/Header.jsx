@@ -36,7 +36,7 @@ export default function Header() {
   return (
     <div className="bg-gray-50 sticky top-0 z-[100]">
       <header className="w-full bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
 
           <div className="flex items-center">
             <a href="/">

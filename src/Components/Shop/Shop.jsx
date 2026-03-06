@@ -37,7 +37,7 @@ const ProductCard = ({ item }) => (
         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
       />
       
-      <div className="absolute left-3 top-3 bg-white/20 backdrop-blur-md px-2 py-1 rounded-md border border-white/30">
+      <div className="absolute left-3 top-3 bg-white/20 backdrop-blur-md px-9 py-9 rounded-md border border-white/30">
         <span className="text-[10px] font-bold text-white tracking-widest uppercase">ԿՈԴ {item.code}</span>
       </div>
 
@@ -66,7 +66,7 @@ const ProductCard = ({ item }) => (
 
 export default function StoneMarketGrid() {
   return (
-    <div className=" bg-[#f8f9fa] p-4 md:p-8 font-sans">
+    <div className=" bg-[#f8f9fa]  md:px-20 py-4 font-sans">
       <div className="mx-auto max-w-8xl">
         <div className="mb-8 border-b border-gray-200 pb-4">
           <h1 className="text-2xl font-black uppercase tracking-tighter text-gray-800">Stone Market</h1>
