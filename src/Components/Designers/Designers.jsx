@@ -1,36 +1,6 @@
 import React from "react";
 import { useRealtimeCollection } from "../../lib/hook"; 
-const CompanyCard = ({ company }) => {
-    return (
-        <div className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col h-full">
-            <div className="w-full h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
-                <img
-                    src={company.img}
-                    alt={company.name}
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                />
-            </div>
 
-            <div className="p-5 flex flex-col flex-grow">
-                <h3 className="font-bold text-gray-800 mb-2 text-lg line-clamp-1">{company.name}</h3>
-                <p className="text-sm text-gray-500 line-clamp-3 leading-relaxed flex-grow">
-                    {company.desc}
-                </p>
-            </div>
-        </div>
-    );
-};
-
-const SkeletonCard = () => (
-    <div className="bg-white rounded-2xl shadow-sm overflow-hidden animate-pulse">
-        <div className="w-full h-48 bg-gray-200" />
-        <div className="p-5 space-y-3">
-            <div className="h-4 bg-gray-200 rounded w-3/4" />
-            <div className="h-3 bg-gray-200 rounded w-full" />
-            <div className="h-3 bg-gray-200 rounded w-5/6" />
-        </div>
-    </div>
-);
 
 export default function App() {
     const { data: companies, loading, error } = useRealtimeCollection("db/designers");
