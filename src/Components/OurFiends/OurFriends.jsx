@@ -1,5 +1,6 @@
 import React from 'react';
 import { useRealtimeCollection } from "../../lib/hook";
+import PartnerCard from "./PartnerCards";
 
 export default function PartnersSection() {
     const { data: partners, loading, error } = useRealtimeCollection("db/OurFriends");

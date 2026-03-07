@@ -1,6 +1,7 @@
 import React from "react";
 import { useRealtimeCollection } from "../../lib/hook"; 
-
+import CompanyCard from "./Companycard";
+import SkeletonCard from "./SkeletonCard";
 
 export default function App() {
     const { data: companies, loading, error } = useRealtimeCollection("db/designers");

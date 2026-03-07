@@ -1,6 +1,6 @@
 import React from "react";
 import Sidebar from "./SideBar";
-
+import Hero from "./Hero";
 
 
 function Banner() {

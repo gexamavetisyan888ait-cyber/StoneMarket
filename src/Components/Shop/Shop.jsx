@@ -1,6 +1,7 @@
 import React from 'react';
 import { ShoppingCart, Heart } from 'lucide-react';
 import { useRealtimeCollection } from "../../lib/hook";
+import ProductCards from "./ProductCards";
 
 const ProductCard = ({ item }) => (
   <div className="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100 transition-all hover:shadow-lg">

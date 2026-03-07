@@ -1,6 +1,6 @@
 import React from 'react';
 import { useRealtimeCollection } from "../../lib/hook";
-
+import DesignerCard from "./Designercard";
 export default function DesignersSection() {
   const { data: designers, loading, error } = useRealtimeCollection("db/designes");
 
