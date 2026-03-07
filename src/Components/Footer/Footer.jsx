@@ -10,10 +10,10 @@ export default function App() {
     return (
         <div className="bg-[#061922] text-white" >
 
-            <section className="w-full mx-auto px-6 py-5 flex gap-10 h-[500px]">
+            <section className="w-full px-6 py-5 flex gap-10 flex-col sm:flex-row ">
 
 
-                <div className="bg-[#0c2430] border border-white/10 rounded-2xl px-5 py-2 shadow-xl w-[80%] ">
+                <div className="bg-[#0c2430] border border-white/10 rounded-2xl px-5 py-2 shadow-xl w-full sm:w-[50%] ">
                     <h2 className="text-2xl font-semibold mb-2">Կապվեք մեզ հետ</h2>
                     <p className="text-gray-400 text-sm mb-4">
                         Լրացրեք տվյալները և մեր մասնագետը Ձեզ հետ կհաստատի կապ։
@@ -60,7 +60,7 @@ export default function App() {
                     </div>
                 </div>
 
-                <div className="rounded-2xl overflow-hidden shadow-xl w-full h-[460px]">
+                <div className="rounded-2xl overflow-hidden shadow-xl w-full  h-[460px]">
                     <img
                         src="https://stonemarket.am/_next/image?url=%2Fimages%2Ffeedback.webp&w=3840&q=75"
                         alt="office"
