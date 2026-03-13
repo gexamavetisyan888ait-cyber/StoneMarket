@@ -7,6 +7,7 @@ import Shop from './pages/Shop';
 import Contact from './pages/Contact';
 import Designers from './pages/Designers';
 import About from './pages/About';
+import Chat from './pages/Chat';
 
 function App() {
   const [count, setCount] = useState(0)
@@ -19,6 +20,7 @@ function App() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/designers" element={<Designers />} />
         <Route path="/about" element={<About />} />
+           <Route path="/chat" element={<Chat />} />
       </Routes>
     </BrowserRouter>
 

@@ -26,7 +26,7 @@ export default function GroupInfoSection() {
               <img
                 src="https://www.stonemarket.am/_next/image?url=%2Fimages%2Fproject1.jpeg&w=3840&q=75"
                 alt="Quarry"
-                className="w-full h-80 object-cover rounded-[2rem] shadow-xl hover:scale-[1.02] transition-transform duration-300"
+                className="w-full h-80 object-cover rounded-4xl shadow-xl hover:scale-[1.02] transition-transform duration-300"
               />
             </div>
           </div>
@@ -36,7 +36,7 @@ export default function GroupInfoSection() {
               <img
                 src="https://www.stonemarket.am/_next/image?url=%2Fimages%2Fproject2.webp&w=3840&q=75"
                 alt="Basalt Quarry"
-                className="w-full h-80 object-cover rounded-[2rem] shadow-xl hover:scale-[1.02] transition-transform duration-300"
+                className="w-full h-80 object-cover rounded-4xl shadow-xl hover:scale-[1.02] transition-transform duration-300"
               />
             </div>
             <div>
@@ -76,7 +76,7 @@ export default function GroupInfoSection() {
             <div className="order-1 md:order-2">
               <img
                 src="https://www.stonemarket.am/_next/image?url=%2Fimages%2Fproject3.jpeg&w=3840&q=75"
-                className="w-full h-80 object-cover rounded-[2rem] shadow-xl hover:scale-[1.02] transition-transform duration-300"
+                className="w-full h-80 object-cover rounded-4xl shadow-xl hover:scale-[1.02] transition-transform duration-300"
                 alt="Processing"
               />
             </div>
@@ -85,7 +85,7 @@ export default function GroupInfoSection() {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <img
               src="https://www.stonemarket.am/_next/image?url=%2Fimages%2Fproject4.JPG&w=3840&q=75"
-              className="w-full h-80 object-cover rounded-[2rem] shadow-xl hover:scale-[1.02] transition-transform duration-300"
+              className="w-full h-80 object-cover rounded-xl shadow-xl hover:scale-[1.02] transition-transform duration-300"
               alt="Festival"
             />
             <div>

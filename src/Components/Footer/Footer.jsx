@@ -161,7 +161,15 @@ export default function App() {
                 <button className="w-16 h-16 bg-emerald-500 hover:bg-emerald-600 rounded-2xl flex items-center justify-center shadow-xl">
                     <FiPhone size={22} />
                 </button>
-                <a className="w-16 h-16 bg-emerald-500 hover:bg-emerald-600 rounded-2xl flex items-center justify-center shadow-xl" href="/chat">
+                <a className="w-16 h-16 bg-emerald-500 hover:bg-emerald-600 rounded-2xl flex items-center justify-center shadow-xl" href="/ch
+                
+                
+                
+                
+                
+                
+                
+                at">
                     <FiMessageCircle size={22} />
                 </a>
             </div>
