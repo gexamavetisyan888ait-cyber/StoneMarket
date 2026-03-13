@@ -10,9 +10,9 @@ export default({ company }) => {
                 />
             </div>
 
-            <div className="p-5 flex flex-col flex-grow">
+            <div className="p-5 flex flex-col grow">
                 <h3 className="font-bold text-gray-800 mb-2 text-lg line-clamp-1">{company.name}</h3>
-                <p className="text-sm text-gray-500 line-clamp-3 leading-relaxed flex-grow">
+                <p className="text-sm text-gray-500 line-clamp-3 leading-relaxed grow">
                     {company.desc}
                 </p>
             </div>

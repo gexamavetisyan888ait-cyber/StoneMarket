@@ -8,7 +8,7 @@ export default ({ item }) => (
       <div className="absolute left-3 top-3 bg-white/20 backdrop-blur-md px-3 py-1 rounded-md border border-white/30">
         <span className="text-[10px] font-bold text-white tracking-widest uppercase">ԿՈԴ {item.code}</span>
       </div>
-      <button className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-gray-400 hover:text-red-500">
+      <button className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-gray-400 hover:text-red-900">
         <Heart size={16} />
       </button>
     </div>
