@@ -47,7 +47,7 @@ export default function ChatUI() {
     <div className="flex items-center justify-center min-h-dvh bg-[#F3F4F6] p-0 md:p-6 lg:p-10">
       
      
-      <div className="flex flex-col w-full max-w-2xl h-dvh md:h-[85vh] bg-white md:rounded-2xl shadow-2xl overflow-hidden border-none md:border md:border-gray-200">
+      <div className="flex flex-col w-full max-w-8xl h-dvh md:h-[85vh] bg-white md:rounded-2xl shadow-2xl overflow-hidden border-none md:border md:border-gray-200">
         
         <header className="shrink-0 px-4 md:px-6 py-3 md:py-4 bg-white border-b border-gray-100 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-3 md:gap-4">
