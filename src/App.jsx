@@ -9,7 +9,7 @@ import Designers from './pages/Designers';
 import About from './pages/About';
 import Chat from './pages/Chat';
 import Favorites from './pages/Favorites'
-
+import Liking from './pages/Liking'
 function App() {
   const [count, setCount] = useState(0)
 
@@ -23,6 +23,7 @@ function App() {
         <Route path="/about" element={<About />} />
         <Route path="/chat" element={<Chat />} />
         <Route path="/favorites" element={<Favorites />} />
+        <Route path="/liking" element={<Liking />} />
       </Routes>
     </BrowserRouter>
 

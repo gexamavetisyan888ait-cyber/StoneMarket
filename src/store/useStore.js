@@ -7,10 +7,8 @@ export const useStore = create(
       favorites: [],
       cart: [],
 
-      // Ֆունկցիա՝ ստանալու համար զամբյուղը
       getCart: () => get().cart,
 
-      // Ֆունկցիա՝ ստանալու համար լայքած ապրանքները
       getFavorites: () => get().favorites,
 
       toggleLike: (product) => set((state) => ({
@@ -27,6 +25,26 @@ export const useStore = create(
     }),
     {
       name: 'shopping-storage', 
+    }
+  )
+);
+export const useFavorite = create(
+  persist(
+    (set, get) => ({
+      likes: [],
+      cart: [], // Փոխել եմ cartL-ը cart-ի, որպեսզի համապատասխանի կանչին
+
+      getCart: () => get().cart,
+      getFavorites: () => get().likes,
+
+      addToCartL: (product) => set((state) => ({
+        cart: state.cart.some((item) => item.id === product.id)
+          ? state.cart.filter((item) => item.id !== product.id)
+          : [...state.cart, product]
+      })),
+    }),
+    {
+      name: 'shopping-favorite', 
     }
   )
 );

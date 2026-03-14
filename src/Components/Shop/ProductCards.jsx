@@ -1,16 +1,16 @@
 import { ShoppingCart, Heart } from 'lucide-react';
-import { useStore } from "../../store/useStore"; 
+import { useStore, useFavorite } from "../../store/useStore"; 
 
 export default ({ item }) => {
   // Կանչում ենք store-ը՝ պահպանելով ռեակտիվությունը
   const cart = useStore((state) => state.cart);
-  const favorites = useStore((state) => state.favorites);
+  const cartL = useFavorite((state) => state.cart);
   const addToCart = useStore((state) => state.addToCart);
-  const toggleLike = useStore((state) => state.toggleLike);
+  const toggleLike = useFavorite((state) => state.addToCartL);
 
   // Ստուգում ենք ակտիվությունը
   const isInCart = cart.some((c) => c.id === item.id);
-  const isLiked = favorites.some((f) => f.id === item.id);
+  const isLiked = cartL.some((c) => c.id === item.id);
 
   return (
     <div className="group flex flex-col overflow-hidden rounded-2xl bg-white border border-gray-100 shadow-sm transition-all hover:shadow-lg">
