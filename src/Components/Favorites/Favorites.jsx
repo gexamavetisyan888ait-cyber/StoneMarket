@@ -3,7 +3,6 @@ import { useStore } from "../../store/useStore";
 import ProductCards from '../Shop/ProductCards';
 
 export default function Favorite() {
-  // Ստանում ենք զամբյուղի պարունակությունը
   const myCart = useStore((state) => state.cart);
 
   return (
