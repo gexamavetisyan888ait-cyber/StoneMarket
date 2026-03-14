@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { FiSearch, FiUser, FiHeart, FiShoppingCart, FiMenu, FiX } from "react-icons/fi";
+import { useStore } from "../../store/useStore";
 
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const myCart = useStore((state) => state.getCart());
 
   const navLinks = [
     {
@@ -72,16 +74,18 @@ export default function Header() {
                 <FiUser size={18} />
               </button>
 
-              <button className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full border border-gray-200 hover:border-emerald-500 hover:text-emerald-500 transition">
+              <button className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full border border-gray-200 hover:border-emerald-500 hover:text-emerald-500 transition" href="/liking">
                 <FiHeart size={16} />
               </button>
 
-              <button className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full border border-gray-200 hover:border-emerald-500 hover:text-emerald-500 transition relative">
-                <FiShoppingCart size={16} />
-                <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
-                  0
-                </span>
-              </button>
+              <a href="/favorites">
+                <button className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full border border-gray-200 hover:border-emerald-500 hover:text-emerald-500 transition relative" >
+                  <FiShoppingCart size={16} />
+                  <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
+                    {myCart.length}
+                  </span>
+                </button>
+              </a>
 
             </div>
 
