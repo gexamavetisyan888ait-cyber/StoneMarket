@@ -109,6 +109,7 @@ export default function ProductDetails() {
               </div>
             </div>
 
+
             <div className="grid grid-cols-2 gap-4 pt-8">
               <div className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-gray-50 shadow-sm">
                 <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg"><Truck size={20}/></div>
@@ -119,7 +120,6 @@ export default function ProductDetails() {
                 <span className="text-xs font-bold text-gray-500 uppercase">Որակի <br/> Երաշխիք</span>
               </div>
             </div>
-
           </div>
         </div>
       </div>
