@@ -1,5 +1,5 @@
 import React from "react";
-import { useRealtimeCollection } from "../../lib/hook"; 
+import { useRealtimeCollection } from "../../lib/hook";
 import CompanyCard from "./Companycard";
 import SkeletonCard from "./SkeletonCard";
 

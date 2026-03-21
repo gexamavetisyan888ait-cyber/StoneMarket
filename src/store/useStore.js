@@ -32,8 +32,7 @@ export const useFavorite = create(
   persist(
     (set, get) => ({
       likes: [],
-      cart: [], // Փոխել եմ cartL-ը cart-ի, որպեսզի համապատասխանի կանչին
-
+      cart: [], 
       getCart: () => get().cart,
       getFavorites: () => get().likes,
 

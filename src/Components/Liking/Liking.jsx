@@ -3,7 +3,6 @@ import { useFavorite } from "../../store/useStore";
 import ProductCards from '../Shop/ProductCards';
 
 export default function Favorite() {
-  // Հիմա 'state.cart'-ը գոյություն ունի store-ում
   const myCart = useFavorite((state) => state.cart);
 
   return (
