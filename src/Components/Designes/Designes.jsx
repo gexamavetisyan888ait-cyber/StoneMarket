@@ -13,6 +13,7 @@ export default function DesignersSection() {
           </h2>
         </div>
 
+
         {error && <p className="text-center text-red-500">Սխալ տվյալների բեռնման ժամանակ</p>}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
