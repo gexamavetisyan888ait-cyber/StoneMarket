@@ -16,18 +16,19 @@ export default function DesignersSection() {
         {error && <p className="text-center text-red-500">Սխալ տվյալների բեռնման ժամանակ</p>}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
-          {loading 
+          {loading
             ? Array(4).fill(0).map((_, i) => <div key={i} className="h-64 bg-gray-200 animate-pulse rounded-xl" />)
             : designers.map((designer) => (
-                <DesignerCard key={designer.id} designer={designer} />
-              ))
+              <DesignerCard key={designer.id} designer={designer} />
+            ))
           }
         </div>
 
         <div className="flex justify-center">
-          <button className="w-full sm:w-auto bg-[#00d084] hover:bg-[#00b070] text-white font-bold py-3 sm:py-2.5 px-10 rounded-md transition-colors text-xs sm:text-sm uppercase tracking-wide">
+          <a className="w-full sm:w-auto bg-[#00d084] hover:bg-[#00b070] text-white font-bold py-3 sm:py-2.5 px-10 rounded-md transition-colors text-xs sm:text-sm uppercase tracking-wide" href="/shop">
             Ավելին
-          </button>
+            
+          </a>
         </div>
       </div>
     </div>
