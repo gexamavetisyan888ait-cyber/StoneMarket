@@ -14,18 +14,17 @@ import {
   onAuthStateChanged 
 } from "firebase/auth";
 import { db, auth, googleProvider } from "../../lib/firebase"; 
-import { Paperclip, Send, Trash2, Users, LogOut } from "lucide-react";
+import { Paperclip, Send, Trash2, Users, LogOut, MessageCircle, ChevronLeft } from "lucide-react";
 
 export default function ChatUI() {
   const [user, setUser] = useState(null); 
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
-  const [onlineUsers, setOnlineUsers] = useState([]); // Բոլոր online օգտատերերի ցուցակը
-  const [onlineCount, setOnlineCount] = useState(0);
+  const [allUsers, setAllUsers] = useState([]); 
+  const [selectedUser, setSelectedUser] = useState(null); 
   const [loading, setLoading] = useState(true);
   const bottomRef = useRef(null);
 
-  // 1. Auth վիճակ
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -34,16 +33,55 @@ export default function ChatUI() {
     return () => unsubscribeAuth();
   }, []);
 
-  // 2. Chat & Presence (Online Status)
   useEffect(() => {
     if (!user) return;
 
-    const chatRef = ref(db, "db/Chat");
     const userStatusRef = ref(db, `db/status/${user.uid}`);
     const connectedRef = ref(db, ".info/connected");
-    const allStatusesRef = ref(db, "db/status");
+    const allUsersRef = ref(db, "db/status");
 
-    // Լսում ենք հաղորդագրությունները
+    onValue(connectedRef, (snap) => {
+      if (snap.val() === true) {
+        set(userStatusRef, {
+          uid: user.uid,
+          state: "online",
+          last_changed: serverTimestamp(),
+          displayName: user.displayName,
+          photo: user.photoURL 
+        });
+        onDisconnect(userStatusRef).update({
+          state: "offline",
+          last_changed: serverTimestamp()
+        });
+      }
+    });
+
+    const unsubscribeUsers = onValue(allUsersRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const usersArray = Object.keys(data).map(key => ({
+          uid: key,
+          ...data[key]
+        }));
+        setAllUsers(usersArray);
+      }
+    });
+
+    return () => unsubscribeUsers();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || !selectedUser) {
+        setMessages([]);
+        return;
+    }
+
+    const combinedId = user.uid > selectedUser.uid 
+      ? `${user.uid}_${selectedUser.uid}` 
+      : `${selectedUser.uid}_${user.uid}`;
+
+    const chatRef = ref(db, `db/chats/${combinedId}`);
+
     const unsubscribeChat = onValue(chatRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
@@ -57,53 +95,26 @@ export default function ChatUI() {
       }
     });
 
-    // Սահմանում ենք online կարգավիճակը և նկարը
-    const unsubscribeConn = onValue(connectedRef, (snap) => {
-      if (snap.val() === true) {
-        set(userStatusRef, {
-          state: "online",
-          last_changed: serverTimestamp(),
-          displayName: user.displayName,
-          photo: user.photoURL // Պահում ենք նկարը բազայում
-        });
-        onDisconnect(userStatusRef).remove();
-      }
-    });
-
-    // Լսում ենք բոլոր online օգտատերերին
-    const unsubscribeStatus = onValue(allStatusesRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const usersArray = Object.keys(data).map(key => ({
-          uid: key,
-          ...data[key]
-        }));
-        setOnlineUsers(usersArray);
-        setOnlineCount(usersArray.length);
-      } else {
-        setOnlineUsers([]);
-        setOnlineCount(0);
-      }
-    });
-
-    return () => {
-      unsubscribeChat();
-      unsubscribeConn();
-      unsubscribeStatus();
-    };
-  }, [user]);
+    return () => unsubscribeChat();
+  }, [user, selectedUser]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // --- Ֆունկցիաներ ---
   const login = () => signInWithPopup(auth, googleProvider);
   const logout = () => signOut(auth);
 
+  // Չաթի ջնջման ֆունկցիան
   const clearChat = async () => {
-    if (window.confirm("Ցանկանու՞մ եք ջնջել ամբողջ չաթի պատմությունը:")) {
-      const chatRef = ref(db, "db/Chat");
+    if (!user || !selectedUser) return;
+    
+    if (window.confirm(`Ցանկանու՞մ եք ջնջել ${selectedUser.displayName}-ի հետ չաթի պատմությունը:`)) {
+      const combinedId = user.uid > selectedUser.uid 
+        ? `${user.uid}_${selectedUser.uid}` 
+        : `${selectedUser.uid}_${user.uid}`;
+      
+      const chatRef = ref(db, `db/chats/${combinedId}`);
       try {
         await remove(chatRef);
         setMessages([]);
@@ -114,36 +125,36 @@ export default function ChatUI() {
   };
 
   const sendMessage = async () => {
-    if (!message.trim() || !user) return;
-    const chatRef = ref(db, "db/Chat");
+    if (!message.trim() || !user || !selectedUser) return;
+
+    const combinedId = user.uid > selectedUser.uid 
+      ? `${user.uid}_${selectedUser.uid}` 
+      : `${selectedUser.uid}_${user.uid}`;
+
+    const chatRef = ref(db, `db/chats/${combinedId}`);
+    
     await push(chatRef, { 
       text: message, 
       timestamp: serverTimestamp(),
-      uid: user.uid,
-      displayName: user.displayName,
-      photo: user.photoURL
+      senderId: user.uid,
+      displayName: user.displayName
     });
     setMessage("");
   };
 
-  if (loading) return <div className="h-screen flex items-center justify-center font-black">ԲԵՌՆՎՈՒՄ Է...</div>;
+  if (loading) return <div className="h-screen flex items-center justify-center font-black bg-[#F3F4F6] text-gray-400">ԲԵՌՆՎՈՒՄ Է...</div>;
 
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#F3F4F6] p-4">
-        <div className="max-w-md w-full bg-white p-10 rounded-[2.5rem] shadow-2xl text-center border border-gray-100">
+        <div className="max-w-md w-full bg-white p-10 rounded-[2.5rem] shadow-2xl text-center border border-gray-100 font-sans">
           <div className="mb-6 flex justify-center">
-            <div className="w-20 h-20 bg-emerald-500 rounded-3xl flex items-center justify-center shadow-lg shadow-emerald-200">
+            <div className="w-20 h-20 bg-emerald-500 rounded-3xl flex items-center justify-center shadow-lg">
                <Users size={40} color="white" />
             </div>
           </div>
-          <h1 className="text-3xl font-black text-gray-800 mb-2 uppercase tracking-tighter italic">Stone Market Chat</h1>
-          <p className="text-gray-500 mb-8 text-sm">Մուտք գործեք համակարգ՝ հաղորդագրություններ ուղարկելու համար:</p>
-          <button 
-            onClick={login}
-            className="w-full flex items-center justify-center gap-3 py-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-gray-800 transition-all active:scale-95 shadow-xl"
-          >
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-6" alt="G" />
+          <h1 className="text-3xl font-black text-gray-800 mb-2 uppercase italic tracking-tighter">Stone Market Chat</h1>
+          <button onClick={login} className="w-full mt-6 flex items-center justify-center gap-3 py-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-gray-800 transition-all shadow-xl">
             Մուտք Google-ով
           </button>
         </div>
@@ -151,95 +162,108 @@ export default function ChatUI() {
     );
   }
 
+
+
   return (
-    <div className="flex items-center justify-center min-h-dvh bg-[#F3F4F6] p-0 md:p-6 lg:p-10 font-sans">
-      <div className="flex flex-col w-full max-w-8xl h-dvh md:h-[85vh] bg-white md:rounded-2xl shadow-2xl overflow-hidden border-none md:border md:border-gray-200">
+    <div className="flex items-center justify-center min-h-dvh bg-[#F3F4F6] p-0 md:p-6 font-sans">
+      <div className="flex w-full max-w-7xl h-dvh md:h-[85vh] bg-white md:rounded-[2rem] shadow-2xl overflow-hidden">
         
-        {/* HEADER */}
-        <header className="shrink-0 px-4 md:px-6 py-3 md:py-4 bg-white border-b border-gray-100 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-3 md:gap-6">
-            
-            {/* Online Օգտատերերի Ավատարները */}
-            <div className="flex -space-x-3 overflow-hidden">
-              {onlineUsers.map((onlineUser) => (
-                <div key={onlineUser.uid} className="relative inline-block" title={onlineUser.displayName}>
-                  <img 
-                    className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border-2 border-white shadow-sm" 
-                    src={onlineUser.photo || "https://stonemarket.am/images/user.svg"} 
-                    alt={onlineUser.displayName}
-                  />
-                  <span className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+        <aside className={`${selectedUser ? 'hidden md:flex' : 'flex'} w-full md:w-80 border-r border-gray-100 flex-col bg-white`}>
+          <div className="p-6 border-b border-gray-50 flex items-center justify-between">
+            <h2 className="font-black text-xl text-gray-800 uppercase italic tracking-tighter">Users</h2>
+            <button onClick={logout} className="p-2 text-gray-400 hover:text-red-500" title="Ելք">
+                <LogOut size={20} />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+            {allUsers.filter(u => u.uid !== user.uid).map((u) => (
+              <button
+                key={u.uid}
+                onClick={() => setSelectedUser(u)}
+                className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all ${
+                  selectedUser?.uid === u.uid ? "bg-green-50 shadow-sm" : "hover:bg-gray-50"
+                }`}
+              >
+                <div className="relative shrink-0">
+                  <img src={u.photo || "https://stonemarket.am/images/user.svg"} className="w-11 h-11 rounded-full object-cover border-2 border-white shadow-sm" alt="" />
+                  <span className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-white rounded-full ${u.state === 'online' ? 'bg-green-500' : 'bg-gray-300'}`}></span>
                 </div>
-              ))}
-            </div>
-
-            <div>
-              <p className="text-[10px] md:text-xs text-green-600 font-bold flex items-center gap-1 uppercase tracking-wider">
-                <Users size={12} /> {onlineCount} Առցանց
-              </p>
-            </div>
+                <div className="text-left overflow-hidden">
+                  <p className="font-bold text-gray-800 text-sm truncate">{u.displayName}</p>
+                  <p className={`text-[10px] font-black uppercase ${u.state === 'online' ? 'text-green-500' : 'text-gray-400'}`}>
+                    {u.state === 'online' ? 'Online' : 'Offline'}
+                  </p>
+                </div>
+              </button>
+            ))}
           </div>
-          
-          <div className="flex gap-1 md:gap-2">
-            <button onClick={clearChat} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors" title="Ջնջել չաթը">
-              <Trash2 size={20} />
-            </button>
-            <button onClick={logout} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors" title="Դուրս գալ">
-              <LogOut size={20} />
-            </button>
-          </div>
-        </header>
+        </aside>
 
-        {/* MESSAGES */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-[#F9FAFB] custom-scrollbar">
-          {messages.map((msg) => {
-            const isMine = msg.uid === user.uid;
-            return (
-              <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"} animate-in fade-in slide-in-from-bottom-2`}>
-                <div className={`flex flex-col ${isMine ? "items-end" : "items-start"} max-w-[85%] md:max-w-[75%]`}>
-                  {!isMine && <span className="text-[10px] text-gray-400 mb-1 ml-2 font-bold">{msg.displayName}</span>}
-                  <div className={`px-4 md:px-5 py-2 md:py-3 rounded-2xl shadow-sm ${
-                    isMine 
-                    ? "bg-[#111827] text-white rounded-tr-none" 
-                    : "bg-white text-gray-800 border border-gray-100 rounded-tl-none"
-                  }`}>
-                    <p className="text-sm md:text-[15px] leading-relaxed break-words">{msg.text}</p>
+        <section className={`${!selectedUser ? 'hidden md:flex' : 'flex'} flex-1 flex-col bg-[#F9FAFB]`}>
+          {selectedUser ? (
+            <>
+              <header className="px-6 py-4 bg-white border-b border-gray-100 flex items-center justify-between shadow-sm">
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setSelectedUser(null)} className="md:hidden p-1 text-gray-400">
+                    <ChevronLeft size={24} />
+                  </button>
+                  <img src={selectedUser.photo} className="w-10 h-10 rounded-full border border-gray-100" alt="" />
+                  <div>
+                    <h3 className="font-black text-gray-800 text-sm uppercase">{selectedUser.displayName}</h3>
+                    <p className={`text-[9px] font-bold ${selectedUser.state === 'online' ? 'text-green-500' : 'text-gray-400'}`}>
+                      {selectedUser.state === 'online' ? 'ԱՌՑԱՆՑ' : 'ՈՉ ԱՌՑԱՆՑ'}
+                    </p>
                   </div>
-                  <span className="text-[9px] text-gray-400 mt-1 px-1 font-medium italic">
-                    {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "..."}
-                  </span>
                 </div>
-              </div>
-            );
-          })}
-          <div ref={bottomRef} />
-        </main>
+                <button onClick={clearChat} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors" title="Ջնջել այս չաթը">
+                  <Trash2 size={20} />
+                </button>
+              </header>
 
-        {/* FOOTER INPUT */}
-        <footer className="shrink-0 p-3 md:p-5 bg-white border-t border-gray-100">
-          <div className="flex items-center gap-2 md:gap-4 bg-[#F3F4F6] rounded-xl md:rounded-2xl px-3 md:px-5 py-2 focus-within:bg-white focus-within:ring-2 focus-within:ring-green-100 transition-all border border-transparent focus-within:border-green-200">
-            <button className="p-1 md:p-2 text-gray-400 hover:text-gray-600 transition">
-              <Paperclip size={20} />
-            </button>
-            <input
-              type="text"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Գրեք հաղորդագրություն..."
-              className="flex-1 bg-transparent border-none py-2 md:py-3 px-1 focus:outline-none text-sm md:text-[15px] text-gray-700"
-              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-            />
-            <button
-              onClick={sendMessage}
-              disabled={!message.trim()}
-              className={`p-2 md:p-3 rounded-lg md:rounded-xl transition-all ${
-                message.trim() ? "bg-green-500 text-white shadow-md shadow-green-100" : "bg-gray-200 text-gray-400 cursor-not-allowed"
-              }`}
-            >
-              <Send size={18} fill={message.trim() ? "white" : "none"} />
-            </button>
-          </div>
-        </footer>
+              <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 custom-scrollbar">
+                {messages.map((msg) => {
+                  const isMine = msg.senderId === user.uid;
+                  return (
+                    <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
+                      <div className={`px-4 py-2.5 rounded-2xl shadow-sm text-sm max-w-[80%] ${
+                        isMine ? "bg-gray-900 text-white rounded-tr-none" : "bg-white text-gray-800 border border-gray-100 rounded-tl-none"
+                      }`}>
+                        <p className="leading-relaxed">{msg.text}</p>
+                        <span className="text-[9px] opacity-50 block mt-1 text-right italic">
+                          {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "..."}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div ref={bottomRef} />
+              </main>
+
+              <footer className="p-4 bg-white border-t border-gray-100">
+                <div className="flex items-center gap-3 bg-gray-100 rounded-2xl px-4 py-2 focus-within:bg-white focus-within:ring-2 focus-within:ring-green-100 transition-all border border-transparent">
+                  <button className="p-1 text-gray-400 hover:text-gray-600"><Paperclip size={20} /></button>
+                  <input
+                    type="text"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="Գրեք հաղորդագրություն..."
+                    className="flex-1 bg-transparent border-none py-3 focus:outline-none text-sm"
+                    onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                  />
+                  <button onClick={sendMessage} disabled={!message.trim()} className="p-2 bg-green-500 text-white rounded-xl disabled:bg-gray-300 transition-all active:scale-95">
+                    <Send size={18} />
+                  </button>
+                </div>
+              </footer>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-gray-300 p-10 text-center">
+              <MessageCircle size={64} className="mb-4 opacity-20" />
+              <h4 className="text-gray-800 font-black uppercase italic tracking-tighter mb-1">Stone Market Chat</h4>
+              <p className="text-xs font-medium uppercase tracking-widest">Ընտրեք որևէ մեկին խոսակցություն սկսելու համար</p>
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );

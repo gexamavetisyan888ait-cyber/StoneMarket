@@ -25,7 +25,7 @@ export default function ProductDetails() {
   const isLiked = cartL.some((c) => c.id === product.id);
 
   return (
-    <div className="min-h-screen bg-[#fcfcfc] pb-20">
+    <div className=" bg-[#fcfcfc] pb-20">
       <div className="max-w-7xl mx-auto px-6 py-4">
         <button 
           onClick={() => navigate(-1)} 
