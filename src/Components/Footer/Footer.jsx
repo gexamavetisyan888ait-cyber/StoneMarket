@@ -74,8 +74,8 @@ export default function App() {
                 <div className="max-w-7xl mx-auto px-6 py-7 grid md:grid-cols-2 lg:grid-cols-4 gap-16">
 
                     <div>
-                        <img src="https://stonemarket.am/icons/logo-light.svg"  />
-                       
+                        <img src="https://stonemarket.am/icons/logo-light.svg" />
+
                         <p className="text-gray-300 text-sm mb-2">
                             +374 (33) 76 - 73 - 77
                         </p>
@@ -155,8 +155,6 @@ export default function App() {
                 <div className="h-16" />
             </footer>
 
-
-            
             <div className="fixed right-8 bottom-8 flex flex-col gap-5">
                 <button className="w-16 h-16 bg-emerald-500 hover:bg-emerald-600 rounded-2xl flex items-center justify-center shadow-xl">
                     <FiPhone size={22} />
