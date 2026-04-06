@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import {
-  ref,
+  ref as databaseRef,
   onValue,
   push,
   serverTimestamp,
@@ -9,15 +9,24 @@ import {
   set,
   update,
   onChildAdded,
-  off,
+  off
 } from "firebase/database";
+import {
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL
+} from "firebase/storage";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
-import { db, auth, googleProvider } from "../../lib/firebase";
-import { Users, LogOut, MessageCircle, ChevronLeft, Send, Trash2, Phone, PhoneOff, Mic, MicOff, Clock } from "lucide-react";
+import { db, auth, googleProvider, storage } from "../../lib/firebase";
+import {
+  LogOut, ChevronLeft, Send, Trash2,
+  Phone, PhoneOff, Mic, MicOff, Plus, X, Video, Users, Image as ImageIcon, Play, Pause, UserMinus
+} from "lucide-react";
 
 const servers = {
   iceServers: [
-    { urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"] }
+    { urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"] },
+    { urls: ["stun:stun3.l.google.com:19302", "stun:stun4.l.google.com:19302"] },
   ],
   iceCandidatePoolSize: 10,
 };
@@ -29,482 +38,495 @@ export default function Chat() {
   const [allUsers, setAllUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [unreadCounts, setUnreadCounts] = useState({});
-  const [totalUnread, setTotalUnread] = useState(0);
 
-  // Call States
+  const [stories, setStories] = useState([]);
+  const [activeStoryGroup, setActiveStoryGroup] = useState(null);
+  const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
+  const [storyReply, setStoryReply] = useState("");
+  const [storyProgress, setStoryProgress] = useState(0);
+
   const [isCalling, setIsCalling] = useState(false);
   const [incomingCall, setIncomingCall] = useState(null);
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
-  const [isTimerActive, setIsTimerActive] = useState(false);
-  const [isLocalInitiator, setIsLocalInitiator] = useState(false);
+  const [isVideoCall, setIsVideoCall] = useState(false);
 
-  // Refs
-  const audioRef = useRef(null);
-  const ringtoneRef = useRef(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorder = useRef(null);
+  const audioChunks = useRef([]);
+
   const pc = useRef(null);
   const timerRef = useRef(null);
   const currentCallIdRef = useRef(null);
+  const ringtoneRef = useRef(null);
+  const storyInputRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const storyTimerRef = useRef(null);
+  const [playingAudioId, setPlayingAudioId] = useState(null);
 
   useEffect(() => {
-    const soundUrl = "https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3";
-    audioRef.current = new Audio(soundUrl);
-    const ringtoneUrl = "https://assets.mixkit.co/active_storage/sfx/1358/1358-preview.mp3";
-    ringtoneRef.current = new Audio(ringtoneUrl);
+    ringtoneRef.current = new Audio("https://assets.mixkit.co/active_storage/sfx/1358/1358-preview.mp3");
     ringtoneRef.current.loop = true;
-
-    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
-    return () => unsubscribeAuth();
+    return onAuthStateChanged(auth, (u) => { setUser(u); setLoading(false); });
   }, []);
 
-  useEffect(() => {
-    if (isTimerActive) {
-      timerRef.current = setInterval(() => setCallDuration((prev) => prev + 1), 1000);
-    } else {
-      clearInterval(timerRef.current);
+  const cleanupCall = () => {
+    if (localStream) localStream.getTracks().forEach(track => track.stop());
+    if (pc.current) { pc.current.close(); pc.current = null; }
+    if (currentCallIdRef.current) {
+      off(databaseRef(db, `calls/${currentCallIdRef.current}/callerCandidates`));
+      off(databaseRef(db, `calls/${currentCallIdRef.current}/targetCandidates`));
+      off(databaseRef(db, `calls/${currentCallIdRef.current}/answer`));
     }
-    return () => clearInterval(timerRef.current);
-  }, [isTimerActive]);
-
-  const formatTime = (seconds) => {
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    return `${m < 10 ? '0' + m : m}:${s < 10 ? '0' + s : s}`;
-  };
-
-  const cleanupCall = (reason = "Normal") => {
-    console.log(`[Cleanup] Cleaning up call. Reason: ${reason}`);
-    if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
-    }
-    if (pc.current) {
-      pc.current.close();
-      pc.current = null;
-    }
-    setLocalStream(null);
-    setRemoteStream(null);
-    setIsCalling(false);
-    setIncomingCall(null);
-    setIsMuted(false);
-    setIsTimerActive(false);
-    setIsLocalInitiator(false);
-    setCallDuration(0);
+    setLocalStream(null); setRemoteStream(null); setIsCalling(false); setIncomingCall(null);
+    setIsMuted(false); setIsVideoOff(false); setCallDuration(0);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = null; ringtoneRef.current?.pause();
     currentCallIdRef.current = null;
-    ringtoneRef.current?.pause();
-    if (ringtoneRef.current) ringtoneRef.current.currentTime = 0;
   };
 
-  // Signalling Listener with Debug Logs
+  const setupWebRTC = async (stream, callId, isCaller) => {
+    pc.current = new RTCPeerConnection(servers);
+    stream.getTracks().forEach(track => pc.current.addTrack(track, stream));
+    pc.current.ontrack = (e) => { if (e.streams && e.streams[0]) setRemoteStream(e.streams[0]); };
+    const icePath = isCaller ? "callerCandidates" : "targetCandidates";
+    pc.current.onicecandidate = (e) => e.candidate && push(databaseRef(db, `calls/${callId}/${icePath}`), e.candidate.toJSON());
+    onChildAdded(databaseRef(db, `calls/${callId}/${isCaller ? "targetCandidates" : "callerCandidates"}`), (s) => {
+      if (s.exists() && pc.current) pc.current.addIceCandidate(new RTCIceCandidate(s.val())).catch(() => {});
+    });
+  };
+
   useEffect(() => {
     if (!user) return;
-    
-    const callsRef = ref(db, 'calls');
-    const unsubscribe = onValue(callsRef, (snapshot) => {
-      const allCalls = snapshot.val();
-      
-      if (!allCalls) {
-        if (isCalling || incomingCall) {
-          console.log("[Signalling] No calls in DB, cleaning up...");
-          cleanupCall("No calls in DB");
-        }
-        return;
-      }
-
-      const myCallId = Object.keys(allCalls).find(key => 
-        allCalls[key].targetId === user.uid || allCalls[key].callerId === user.uid
-      );
-
-      if (!myCallId) {
-        if (!isLocalInitiator && (isCalling || incomingCall)) {
-          console.log("[Signalling] My call ID not found, cleaning up...");
-          cleanupCall("Call ID missing");
-        }
-        return;
-      }
-
-      const callData = allCalls[myCallId];
+    return onValue(databaseRef(db, 'calls'), (snap) => {
+      const data = snap.val();
+      if (!data) { if (isCalling || incomingCall) cleanupCall(); return; }
+      const myCallId = Object.keys(data).find(id => id.includes(user.uid));
+      if (!myCallId) { if (isCalling || incomingCall) cleanupCall(); return; }
+      const callData = data[myCallId];
       currentCallIdRef.current = myCallId;
-      console.log(`[Signalling] Current Status: ${callData.status} | CallID: ${myCallId}`);
-
-      // Incoming Call (Target)
-      if (callData.targetId === user.uid && callData.status === "offer") {
-        if (!isCalling && !incomingCall) {
-          console.log("[Signalling] New incoming call detected");
-          setIncomingCall({ ...callData, callId: myCallId });
-          ringtoneRef.current?.play().catch(() => {});
-        }
-      } 
-      
-      // Active Call
+      if (callData.targetId === user.uid && callData.status === "offer" && !isCalling && !incomingCall) {
+        setIncomingCall({ ...callData, callId: myCallId });
+        setIsVideoCall(callData.type === "video");
+        ringtoneRef.current?.play().catch(() => {});
+      }
       if (callData.status === "active") {
-        console.log("[Signalling] Call status is ACTIVE. Starting timer.");
-        setIsTimerActive(true);
-        setIsCalling(true); 
-        setIncomingCall(null);
         ringtoneRef.current?.pause();
+        setIncomingCall(null);
+        setIsCalling(true);
+        if (!timerRef.current) {
+          timerRef.current = setInterval(() => setCallDuration(p => p + 1), 1000);
+        }
       }
-
-      // Ended Call
-      if (callData.status === "ended") {
-        console.log("[Signalling] Call status is ENDED.");
-        cleanupCall("Call ended by status");
-      }
+      if (callData.status === "ended") cleanupCall();
     });
+  }, [user, isCalling, incomingCall]);
 
-    return () => off(callsRef);
-  }, [user, isCalling, incomingCall, isLocalInitiator]);
-
-  const setupWebRTC = async (stream) => {
-    console.log("[WebRTC] Setting up PeerConnection...");
-    pc.current = new RTCPeerConnection(servers);
-    
-    stream.getTracks().forEach(track => {
-      console.log(`[WebRTC] Adding local track: ${track.kind}`);
-      pc.current.addTrack(track, stream);
-    });
-
-    pc.current.ontrack = (event) => {
-      console.log("[WebRTC] Remote track received");
-      if (event.streams && event.streams[0]) {
-        setRemoteStream(event.streams[0]);
-      }
-    };
-
-    pc.current.oniceconnectionstatechange = () => {
-      console.log(`[WebRTC] ICE Connection State: ${pc.current?.iceConnectionState}`);
-    };
-
-    return pc.current;
-  };
-
-  const startCall = async () => {
-    if (!selectedUser || !user) return;
-    console.log(`[Action] Starting call to: ${selectedUser.displayName}`);
-
+  const startCall = async (type = "audio") => {
+    if (!selectedUser || selectedUser.isGroup) return;
+    const callId = [user.uid, selectedUser.uid].sort().join("_");
+    setIsCalling(true); setIsVideoCall(type === "video");
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      console.log("[Action] Local stream acquired");
-      setLocalStream(stream);
-      setIsLocalInitiator(true);
-      setIsCalling(true); 
-      
-      const callId = user.uid; 
-      currentCallIdRef.current = callId;
-
-      const peerConnection = await setupWebRTC(stream);
-      const callRef = ref(db, `calls/${callId}`);
-      const offerCandidatesRef = ref(db, `calls/${callId}/offerCandidates`);
-      const answerCandidatesRef = ref(db, `calls/${callId}/answerCandidates`);
-
-      peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-          console.log("[WebRTC] Local ICE candidate found");
-          push(offerCandidatesRef, event.candidate.toJSON());
-        }
-      };
-
-      const offerDescription = await peerConnection.createOffer();
-      await peerConnection.setLocalDescription(offerDescription);
-      console.log("[Action] Offer created and set as local description");
-
-      const callPayload = {
-        offer: { type: offerDescription.type, sdp: offerDescription.sdp },
-        callerId: user.uid,
-        callerName: user.displayName,
-        callerPhoto: user.photoURL,
-        targetId: selectedUser.uid,
-        targetName: selectedUser.displayName,
-        targetPhoto: selectedUser.photo,
-        status: "offer",
-        timestamp: serverTimestamp()
-      };
-
-      await set(callRef, callPayload);
-      console.log("[Firebase] Offer uploaded to DB");
-
-      onValue(callRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data?.answer && peerConnection.signalingState !== "stable") {
-          console.log("[Firebase] Answer received from target");
-          peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-        }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === "video" });
+      setLocalStream(stream); await setupWebRTC(stream, callId, true);
+      const offer = await pc.current.createOffer();
+      await pc.current.setLocalDescription(offer);
+      await set(databaseRef(db, `calls/${callId}`), {
+        offer: { type: offer.type, sdp: offer.sdp },
+        callerId: user.uid, callerName: user.displayName, callerPhoto: user.photoURL,
+        targetId: selectedUser.uid, targetName: selectedUser.displayName, targetPhoto: selectedUser.photo,
+        status: "offer", type, timestamp: serverTimestamp()
       });
-
-      onChildAdded(answerCandidatesRef, (snapshot) => {
-        console.log("[WebRTC] Adding remote ICE candidate");
-        const candidate = new RTCIceCandidate(snapshot.val());
-        peerConnection.addIceCandidate(candidate).catch(e => console.error("ICE Error:", e));
+      onValue(databaseRef(db, `calls/${callId}/answer`), (s) => {
+        const answer = s.val();
+        if (answer && pc.current && !pc.current.remoteDescription) pc.current.setRemoteDescription(new RTCSessionDescription(answer));
       });
-
-    } catch (err) {
-      console.error("[Error] Error in startCall:", err);
-      cleanupCall("Error in startCall");
-    }
+    } catch (err) { cleanupCall(); }
   };
 
   const answerCall = async () => {
-    if (!incomingCall || !user) return;
+    if (!incomingCall) return;
     const callId = incomingCall.callId;
-    console.log(`[Action] Answering call from: ${incomingCall.callerName}`);
-    
     ringtoneRef.current?.pause();
-
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      console.log("[Action] Local stream acquired for answering");
-      setLocalStream(stream);
-      setIsCalling(true);
-      setIsLocalInitiator(false); 
-
-      const peerConnection = await setupWebRTC(stream);
-      const callRef = ref(db, `calls/${callId}`);
-      const offerCandidatesRef = ref(db, `calls/${callId}/offerCandidates`);
-      const answerCandidatesRef = ref(db, `calls/${callId}/answerCandidates`);
-
-      peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-          console.log("[WebRTC] Answer ICE candidate found");
-          push(answerCandidatesRef, event.candidate.toJSON());
-        }
-      };
-
-      console.log("[Action] Setting remote offer description");
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
-      
-      const answerDescription = await peerConnection.createAnswer();
-      await peerConnection.setLocalDescription(answerDescription);
-      console.log("[Action] Answer created and set as local description");
-
-      await update(callRef, {
-        answer: { type: answerDescription.type, sdp: answerDescription.sdp },
-        status: "active"
-      });
-      console.log("[Firebase] Call status updated to ACTIVE");
-
-      onChildAdded(offerCandidatesRef, (snapshot) => {
-        console.log("[WebRTC] Adding remote ICE candidate (from offer)");
-        const candidate = new RTCIceCandidate(snapshot.val());
-        peerConnection.addIceCandidate(candidate).catch(e => console.error("ICE Error:", e));
-      });
-
-    } catch (err) {
-      console.error("[Error] Error in answerCall:", err);
-      cleanupCall("Error in answerCall");
-    }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: incomingCall.type === "video" });
+      setLocalStream(stream); setIsCalling(true); setIsVideoCall(incomingCall.type === "video");
+      await setupWebRTC(stream, callId, false);
+      await pc.current.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
+      const answer = await pc.current.createAnswer();
+      await pc.current.setLocalDescription(answer);
+      await update(databaseRef(db, `calls/${callId}`), { answer: { type: answer.type, sdp: answer.sdp }, status: "active" });
+    } catch (err) { cleanupCall(); }
   };
 
   const endCall = async () => {
-    console.log("[Action] Ending call manually");
     if (currentCallIdRef.current) {
-      const callRef = ref(db, `calls/${currentCallIdRef.current}`);
-      await update(callRef, { status: "ended" });
-      setTimeout(() => { remove(callRef).catch(() => {}); }, 1500);
+      await update(databaseRef(db, `calls/${currentCallIdRef.current}`), { status: "ended" });
+      setTimeout(() => remove(databaseRef(db, `calls/${currentCallIdRef.current}`)), 1000);
     }
-    cleanupCall("User clicked end call");
+    cleanupCall();
   };
 
-  const toggleMic = () => {
-    if (localStream) {
-      const track = localStream.getAudioTracks()[0];
-      track.enabled = !track.enabled;
-      setIsMuted(!track.enabled);
-      console.log(`[Action] Microphone ${track.enabled ? "Enabled" : "Muted"}`);
+  const sendMsg = async (text = null, fileUrl = null, fileType = null, targetUser = null) => {
+    const partner = targetUser || selectedUser;
+    if (!user || !partner) return;
+    const cid = partner.isGroup ? `group_${partner.id}` : [user.uid, partner.uid].sort().join("_");
+    await push(databaseRef(db, `db/chats/${cid}`), {
+      text, file: fileUrl, fileType, senderId: user.uid, senderName: user.displayName, timestamp: serverTimestamp()
+    });
+    setMessage("");
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const type = file.type.startsWith("image") ? "image" : file.type.startsWith("video") ? "video" : "file";
+    const sRef = storageRef(storage, `chat_files/${Date.now()}_${file.name}`);
+    await uploadBytes(sRef, file);
+    const url = await getDownloadURL(sRef);
+    sendMsg(null, url, type);
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder.current = new MediaRecorder(stream);
+      audioChunks.current = [];
+      mediaRecorder.current.ondataavailable = (e) => audioChunks.current.push(e.data);
+      mediaRecorder.current.onstop = async () => {
+        const audioBlob = new Blob(audioChunks.current, { type: 'audio/mp4' });
+        const sRef = storageRef(storage, `voice/${user.uid}/${Date.now()}.mp4`);
+        await uploadBytes(sRef, audioBlob);
+        const url = await getDownloadURL(sRef);
+        sendMsg(null, url, "voice");
+      };
+      mediaRecorder.current.start(); setIsRecording(true);
+    } catch (e) { alert("Microphone error"); }
+  };
+
+  const stopRecording = () => { if (mediaRecorder.current && isRecording) { mediaRecorder.current.stop(); setIsRecording(false); } };
+
+  const toggleAudio = (id) => {
+    const audio = document.getElementById(`audio-${id}`);
+    if (playingAudioId === id) {
+      audio.pause();
+      setPlayingAudioId(null);
+    } else {
+      if (playingAudioId) document.getElementById(`audio-${playingAudioId}`)?.pause();
+      audio.play();
+      setPlayingAudioId(id);
+      audio.onended = () => setPlayingAudioId(null);
     }
   };
 
-  // Status & User list
   useEffect(() => {
     if (!user) return;
-    const userStatusRef = ref(db, `db/status/${user.uid}`);
-    onValue(ref(db, ".info/connected"), (snap) => {
-      if (snap.val() === true) {
-        set(userStatusRef, { uid: user.uid, state: "online", last_changed: serverTimestamp(), displayName: user.displayName, photo: user.photoURL });
-        onDisconnect(userStatusRef).update({ state: "offline", last_changed: serverTimestamp() });
-      }
-    });
-    onValue(ref(db, "db/status"), (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        setAllUsers(Object.keys(data).map(key => ({ uid: key, ...data[key] })));
-      }
+    const sRef = databaseRef(db, `db/status/${user.uid}`);
+    set(sRef, { uid: user.uid, state: "online", last_changed: serverTimestamp(), displayName: user.displayName, photo: user.photoURL });
+    onDisconnect(sRef).update({ state: "offline", last_changed: serverTimestamp() });
+
+    onValue(databaseRef(db, "db/status"), (snap) => {
+      const data = snap.val() || {};
+      const uniqueUsers = new Map();
+      Object.values(data).forEach(u => uniqueUsers.set(u.uid, u));
+      onValue(databaseRef(db, "db/groups"), (gSnap) => {
+        const groups = gSnap.exists() ? Object.values(gSnap.val()).filter(g => g.members?.[user.uid]).map(g => ({...g, isGroup: true, displayName: g.name})) : [];
+        setAllUsers([...groups, ...Array.from(uniqueUsers.values())]);
+      });
     });
   }, [user]);
 
-  // Messages logic
   useEffect(() => {
     if (!user) return;
-    const chatsRef = ref(db, `db/chats`);
-    return onValue(chatsRef, (snapshot) => {
-      const allChats = snapshot.val() || {};
-      const newCounts = {};
-      let total = 0;
-      Object.keys(allChats).forEach(chatId => {
-        if (chatId.includes(user.uid)) {
-          const chatMessages = allChats[chatId];
-          const msgIds = Object.keys(chatMessages);
-          const otherUserId = chatId.replace(user.uid, "").replace("_", "");
-          const lastReadId = localStorage.getItem(`lastRead_${chatId}`);
-          let chatUnreadCount = 0;
-          msgIds.forEach(id => {
-            if (chatMessages[id].senderId !== user.uid && (!lastReadId || id > lastReadId)) chatUnreadCount++;
-          });
-          if (chatUnreadCount > 0) {
-            newCounts[otherUserId] = chatUnreadCount;
-            total += chatUnreadCount;
+    const dayAgo = Date.now() - 86400000;
+    return onValue(databaseRef(db, "stories"), (snap) => {
+      const data = snap.val(); if (!data) { setStories([]); return; }
+      const active = Object.keys(data).map(id => ({ id, ...data[id] })).filter(s => s.timestamp > dayAgo);
+      const grouped = active.reduce((acc, s) => {
+        if (!acc[s.uid]) acc[s.uid] = { uid: s.uid, displayName: s.displayName, photo: s.photo, items: [] };
+        acc[s.uid].items.push(s); return acc;
+      }, {});
+      setStories(Object.values(grouped));
+    });
+  }, [user]);
+
+  useEffect(() => {
+    if (!activeStoryGroup) { setStoryProgress(0); return; }
+    storyTimerRef.current = setInterval(() => {
+      setStoryProgress(p => {
+        if (p >= 100) {
+          if (currentStoryIndex < activeStoryGroup.items.length - 1) {
+            setCurrentStoryIndex(prev => prev + 1);
+            return 0;
+          } else {
+            setActiveStoryGroup(null);
+            return 0;
           }
         }
+        return p + 0.5;
       });
-      setUnreadCounts(newCounts);
-      setTotalUnread(total);
-    });
-  }, [user]);
+    }, 50);
+    return () => clearInterval(storyTimerRef.current);
+  }, [activeStoryGroup, currentStoryIndex]);
 
-  useEffect(() => {
-    if (!user || !selectedUser) { setMessages([]); return; }
-    const combinedId = user.uid > selectedUser.uid ? `${user.uid}_${selectedUser.uid}` : `${selectedUser.uid}_${user.uid}`;
-    return onValue(ref(db, `db/chats/${combinedId}`), (snapshot) => {
-      const data = snapshot.val();
-      if (data) localStorage.setItem(`lastRead_${combinedId}`, Object.keys(data)[Object.keys(data).length - 1]);
-      setMessages(data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : []);
-    });
-  }, [user, selectedUser?.uid]);
-
-  const login = async () => await signInWithPopup(auth, googleProvider);
-
-  const sendMessage = async () => {
-    if (!message.trim() || !user || !selectedUser) return;
-    const combinedId = user.uid > selectedUser.uid ? `${user.uid}_${selectedUser.uid}` : `${selectedUser.uid}_${user.uid}`;
-    const newMsgRef = push(ref(db, `db/chats/${combinedId}`));
-    await set(newMsgRef, { text: message, timestamp: serverTimestamp(), senderId: user.uid, displayName: user.displayName });
-    setMessage("");
-    audioRef.current?.play().catch(() => {});
+  const uploadStory = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const sRef = storageRef(storage, `stories/${user.uid}/${Date.now()}`);
+    await uploadBytes(sRef, file);
+    const url = await getDownloadURL(sRef);
+    await push(databaseRef(db, "stories"), { uid: user.uid, displayName: user.displayName, photo: user.photoURL, url, type: file.type.startsWith("video") ? "video" : "image", timestamp: Date.now() });
   };
 
-  if (loading) return <div className="h-screen flex items-center justify-center font-black bg-[#F3F4F6] text-gray-400 italic uppercase tracking-widest">Բեռնվում է...</div>;
+  const handleStoryClick = (e) => {
+    const x = e.clientX;
+    const width = window.innerWidth;
+    if (x > width / 2) {
+      if (currentStoryIndex < activeStoryGroup.items.length - 1) {
+        setCurrentStoryIndex(p => p + 1);
+        setStoryProgress(0);
+      } else setActiveStoryGroup(null);
+    } else {
+      if (currentStoryIndex > 0) {
+        setCurrentStoryIndex(p => p - 1);
+        setStoryProgress(0);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!user || !selectedUser) return;
+    const cid = selectedUser.isGroup ? `group_${selectedUser.id}` : [user.uid, selectedUser.uid].sort().join("_");
+    return onValue(databaseRef(db, `db/chats/${cid}`), (snap) => {
+      const d = snap.val(); setMessages(d ? Object.keys(d).map(k => ({ id: k, ...d[k] })) : []);
+    });
+  }, [user, selectedUser]);
+
+  const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+
+  const createGroup = async () => {
+    const name = prompt("Group Name:");
+    if (!name) return;
+    const id = Date.now();
+    await set(databaseRef(db, `db/groups/${id}`), { id, name, admin: user.uid, members: { [user.uid]: true }, photo: `https://ui-avatars.com/api/?name=${name}&background=random` });
+  };
+
+  const leaveGroup = async () => {
+    if (!selectedUser?.isGroup) return;
+    await remove(databaseRef(db, `db/groups/${selectedUser.id}/members/${user.uid}`));
+    setSelectedUser(null);
+  };
+
+  if (loading) return <div className="h-screen flex items-center justify-center font-black italic text-gray-400">STONECHAT...</div>;
 
   return (
     <div className="flex flex-col h-screen bg-[#F3F4F6] font-sans overflow-hidden">
       
+      {/* STORY VIEWER */}
+      {activeStoryGroup && (
+        <div className="fixed inset-0 z-[6000] bg-black flex flex-col items-center justify-center">
+          <div className="relative w-full max-w-lg h-full bg-zinc-900 md:h-[95vh] md:rounded-xl overflow-hidden shadow-2xl flex flex-col">
+            {/* Click areas for navigation */}
+            <div className="absolute inset-0 z-40 flex" onClick={handleStoryClick}>
+              <div className="w-1/2 h-full cursor-w-resize"></div>
+              <div className="w-1/2 h-full cursor-e-resize"></div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="absolute top-4 left-4 right-4 flex gap-1 z-50">
+              {activeStoryGroup.items.map((_, i) => (
+                <div key={i} className="h-[2px] flex-1 bg-white/30 rounded-full overflow-hidden">
+                  <div className="h-full bg-white transition-all duration-100 ease-linear" style={{ width: i === currentStoryIndex ? `${storyProgress}%` : i < currentStoryIndex ? '100%' : '0%' }} />
+                </div>
+              ))}
+            </div>
+
+            {/* User Info & Close */}
+            <div className="absolute top-8 left-4 right-4 flex justify-between items-center z-50">
+              <div className="flex items-center gap-3">
+                <img src={activeStoryGroup.photo} className="w-10 h-10 rounded-full border border-white/20" alt="" />
+                <span className="text-white font-bold text-sm drop-shadow-md">{activeStoryGroup.displayName}</span>
+              </div>
+              <button onClick={() => setActiveStoryGroup(null)} className="text-white drop-shadow-md hover:scale-110 relative z-50"><X size={28} /></button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 flex items-center justify-center bg-black">
+              {activeStoryGroup.items[currentStoryIndex].type === "video" ? (
+                <video src={activeStoryGroup.items[currentStoryIndex].url} autoPlay playsInline className="w-full h-full object-contain" />
+              ) : (
+                <img src={activeStoryGroup.items[currentStoryIndex].url} className="w-full h-full object-contain" alt="" />
+              )}
+            </div>
+
+            {/* Story Reply */}
+            <div className="p-4 bg-gradient-to-t from-black/80 to-transparent flex items-center gap-3 relative z-50">
+              <input type="text" value={storyReply} onChange={(e) => setStoryReply(e.target.value)} placeholder="Send message..." className="flex-1 bg-transparent border border-white/40 rounded-full px-5 py-2 text-white text-sm outline-none placeholder:text-white/60 focus:border-white" />
+              <button onClick={async () => {
+                if (!storyReply.trim()) return;
+                const target = { uid: activeStoryGroup.uid, displayName: activeStoryGroup.displayName, photo: activeStoryGroup.photo };
+                await sendMsg(`Story reply: ${storyReply}\n${activeStoryGroup.items[currentStoryIndex].url}`, null, "text", target);
+                setStoryReply(""); setActiveStoryGroup(null);
+              }} className="text-white"><Send size={24} /></button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CALL UI */}
       {isCalling && (
-        <div className="fixed inset-0 z-[150] bg-gray-900 flex flex-col items-center justify-center p-4">
-          <div className="w-full max-sm flex flex-col items-center text-center">
-            <div className="relative mb-8">
-              <img 
-                src={(user?.uid === currentCallIdRef.current ? (incomingCall?.targetPhoto || selectedUser?.photo) : (incomingCall?.callerPhoto || selectedUser?.photo)) || "https://stonemarket.am/images/user.svg"} 
-                className="w-32 h-32 rounded-full border-4 border-emerald-500 p-1 object-cover" 
-                alt="" 
-              />
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase shadow-lg tracking-widest animate-pulse">
-                {isTimerActive ? "In Call" : "Calling..."}
+        <div className="fixed inset-0 z-[5000] bg-slate-950 flex flex-col items-center justify-center animate-in fade-in duration-500 overflow-hidden">
+          <div className="absolute inset-0 opacity-30">
+            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-600 rounded-full blur-[120px] animate-pulse"></div>
+            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }}></div>
+          </div>
+          <div className="relative w-full h-full max-w-[100vw] max-h-[100vh] md:w-[95%] md:h-[90%] md:rounded-[3rem] bg-black/60 backdrop-blur-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col items-center justify-center">
+            {isVideoCall ? (
+              <div className="relative w-full h-full">
+                {remoteStream ? <video autoPlay playsInline ref={v => v && (v.srcObject = remoteStream)} className="w-full h-full object-cover" /> : 
+                <div className="w-full h-full flex flex-col items-center justify-center bg-gray-900/50"><img src={selectedUser?.photo || incomingCall?.callerPhoto} className="w-32 h-32 rounded-full border-2 border-emerald-500/50 p-1 mb-4 object-cover animate-pulse" /><p className="text-white/50 font-bold tracking-widest animate-bounce uppercase text-xs">Connecting...</p></div>}
+                {localStream && !isVideoOff && <div className="absolute top-6 right-6 md:top-10 md:right-10 w-32 h-44 md:w-56 md:h-80 rounded-3xl border-2 border-white/20 shadow-2xl overflow-hidden z-20 transition-all hover:scale-105"><video autoPlay muted playsInline ref={v => v && (v.srcObject = localStream)} className="w-full h-full object-cover" /></div>}
               </div>
-            </div>
-            <h2 className="text-white text-2xl font-black mb-2">
-              {user?.uid === currentCallIdRef.current ? (incomingCall?.targetName || selectedUser?.displayName) : (incomingCall?.callerName || selectedUser?.displayName)}
-            </h2>
-            <div className="flex items-center gap-2 text-emerald-400 font-mono text-xl mb-12">
-              <Clock size={20} />
-              {isTimerActive ? formatTime(callDuration) : "Connecting..."}
-            </div>
-            {remoteStream && <audio autoPlay ref={a => { if (a) a.srcObject = remoteStream }} />}
-            <div className="flex gap-6">
-              <button onClick={toggleMic} className={`p-6 rounded-full transition-all ${isMuted ? 'bg-red-500 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}>
-                {isMuted ? <MicOff size={28} /> : <Mic size={28} />}
-              </button>
-              <button onClick={endCall} className="p-6 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-xl shadow-red-500/20 transition-all">
-                <PhoneOff size={28} />
-              </button>
+            ) : (
+              <div className="flex flex-col items-center z-10">
+                <div className="relative mb-12"><div className="absolute inset-0 bg-emerald-500 rounded-full blur-3xl opacity-20 animate-pulse"></div><img src={selectedUser?.photo || incomingCall?.callerPhoto} className="relative w-48 h-48 md:w-64 md:h-64 rounded-full border-[6px] border-white/10 p-2 object-cover shadow-[0_0_50px_rgba(0,0,0,0.5)]" alt="User" /><div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-6 py-2 bg-emerald-500 rounded-full text-white text-xs font-black tracking-widest shadow-lg">ON CALL</div></div>
+                <h2 className="text-white text-4xl md:text-6xl font-black tracking-tighter mb-2 italic">{selectedUser?.displayName || incomingCall?.callerName}</h2>
+                <div className="flex items-center gap-3 text-emerald-400 font-mono text-xl tracking-[0.3em] bg-white/5 px-6 py-2 rounded-full border border-white/5"><span className="relative flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span></span>{formatTime(callDuration)}</div>
+              </div>
+            )}
+            {!isVideoCall && remoteStream && <audio autoPlay ref={a => a && (a.srcObject = remoteStream)} />}
+            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4 md:gap-8 bg-white/5 backdrop-blur-2xl px-8 py-6 rounded-[3rem] border border-white/10 z-30 shadow-2xl">
+              <button onClick={() => { if (localStream) { localStream.getAudioTracks()[0].enabled = !localStream.getAudioTracks()[0].enabled; setIsMuted(!localStream.getAudioTracks()[0].enabled); } }} className={`group p-5 md:p-6 rounded-full transition-all duration-500 ${isMuted ? 'bg-red-500 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}>{isMuted ? <MicOff size={28} /> : <Mic size={28} />}</button>
+              {isVideoCall && <button onClick={() => { if (localStream) { localStream.getVideoTracks()[0].enabled = !localStream.getVideoTracks()[0].enabled; setIsVideoOff(!localStream.getVideoTracks()[0].enabled); } }} className={`group p-5 md:p-6 rounded-full transition-all duration-500 ${isVideoOff ? 'bg-red-500 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}>{isVideoOff ? <Video size={28} /> : <Video size={28} />}</button>}
+              <div className="h-10 w-[1px] bg-white/10 mx-2 hidden md:block"></div>
+              <button onClick={endCall} className="group p-6 md:p-8 bg-red-600 text-white rounded-full hover:bg-red-500 hover:scale-110 active:scale-95 transition-all shadow-[0_0_40px_rgba(220,38,38,0.4)]"><PhoneOff size={32} /></button>
             </div>
           </div>
         </div>
       )}
 
-      {/* INCOMING CALL NOTIFICATION */}
+      {/* INCOMING CALL BANNER */}
       {incomingCall && !isCalling && (
-        <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[200] bg-white shadow-2xl rounded-[2.5rem] p-6 flex items-center gap-6 border border-emerald-500 animate-in fade-in slide-in-from-top-4 duration-500 w-[90%] max-w-md">
-          <img src={incomingCall.callerPhoto || "https://stonemarket.am/images/user.svg"} className="w-14 h-14 rounded-full object-cover" alt="" />
-          <div className="flex-1">
-            <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Incoming Call</p>
-            <h3 className="font-black text-gray-800">{incomingCall.callerName}</h3>
-          </div>
-          <div className="flex gap-3">
-            <button onClick={answerCall} className="p-4 bg-emerald-500 text-white rounded-full hover:bg-emerald-600 shadow-lg shadow-emerald-200"><Phone size={24} /></button>
-            <button onClick={endCall} className="p-4 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg shadow-red-200"><PhoneOff size={24} /></button>
-          </div>
+        <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[3100] bg-white p-6 rounded-[2.5rem] shadow-2xl flex items-center gap-6 border border-emerald-500 w-[90%] max-w-md animate-bounce">
+          <img src={incomingCall.callerPhoto} className="w-16 h-16 rounded-full object-cover" alt="" />
+          <div className="flex-1"><p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">{incomingCall.type} CALL</p><h3 className="font-black text-gray-800">{incomingCall.callerName}</h3></div>
+          <div className="flex gap-3"><button onClick={answerCall} className="p-4 bg-emerald-500 text-white rounded-full"><Phone size={24} /></button><button onClick={endCall} className="p-4 bg-red-500 text-white rounded-full"><PhoneOff size={24} /></button></div>
         </div>
       )}
 
-      {/* CHAT INTERFACE */}
-      <main className="flex-1 overflow-hidden flex flex-col h-full">
+      <main className="flex-1 flex overflow-hidden p-4 md:p-8">
         {!user ? (
-          <div className="flex-1 flex items-center justify-center p-4">
-            <button onClick={login} className="py-4 px-8 bg-gray-900 text-white rounded-2xl font-bold">Մուտք Google-ով</button>
-          </div>
+          <div className="flex-1 flex items-center justify-center"><button onClick={() => signInWithPopup(auth, googleProvider)} className="py-4 px-10 bg-gray-900 text-white rounded-[2rem] font-black shadow-2xl hover:scale-105 transition-all">Մուտք Google-ով</button></div>
         ) : (
-          <div className="flex-1 flex items-center justify-center p-4 md:p-8 lg:p-12 h-full overflow-hidden">
-            <div className="flex w-full max-w-[98%] 2xl:max-w-[1600px] h-full bg-white md:rounded-[2.5rem] shadow-2xl overflow-hidden">
-              <aside className={`${selectedUser ? 'hidden md:flex' : 'flex'} w-full md:w-[350px] lg:w-[420px] border-r border-gray-100 flex-col bg-white shrink-0`}>
-                <div className="p-6 border-b border-gray-50 flex items-center justify-between">
-                  <h2 className="font-black text-xl text-gray-800">Messages</h2>
-                  <button onClick={() => signOut(auth)} className="p-2 text-gray-400 hover:text-red-500"><LogOut size={20} /></button>
+          <div className="flex w-full h-full bg-white md:rounded-[3rem] shadow-2xl overflow-hidden">
+            
+            {/* SIDEBAR */}
+            <aside className={`${selectedUser ? 'hidden md:flex' : 'flex'} w-full md:w-[380px] flex-col border-r border-gray-50`}>
+              <div className="p-8 flex justify-between items-center"><h2 className="font-black text-2xl text-gray-900 italic">StoneChat</h2><div className="flex gap-3"><button onClick={createGroup} className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-full transition-all"><Users size={22} /></button><button onClick={() => signOut(auth)} className="p-2 text-gray-300 hover:text-red-500 transition-all"><LogOut size={22} /></button></div></div>
+              
+              {/* STORIES */}
+              <div className="px-6 py-2 flex gap-4 overflow-x-auto no-scrollbar mb-4">
+                <div className="shrink-0 flex flex-col items-center gap-1">
+                  <button onClick={() => storyInputRef.current.click()} className="w-16 h-16 rounded-full border-2 border-dashed border-emerald-500 flex items-center justify-center text-emerald-500 bg-emerald-50/50 transition-all hover:bg-emerald-50"><Plus size={28} /></button>
+                  <span className="text-[10px] font-black text-emerald-500 uppercase">Story</span>
+                  <input type="file" ref={storyInputRef} onChange={uploadStory} hidden accept="image/*,video/*" />
                 </div>
-                <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-                  {allUsers.filter(u => u.uid !== user.uid).map((u) => (
-                    <button key={u.uid} onClick={() => setSelectedUser(u)} className={`w-full flex items-center gap-4 p-4 rounded-[1.5rem] transition-all ${selectedUser?.uid === u.uid ? "bg-emerald-50" : "hover:bg-gray-50"}`}>
-                      <img src={u.photo || "https://stonemarket.am/images/user.svg"} className="w-12 h-12 rounded-full object-cover" alt="" />
-                      <div className="text-left flex-1 truncate">
-                        <p className="font-bold text-gray-800 text-sm truncate">{u.displayName}</p>
-                        <p className={`text-[10px] font-black uppercase ${u.state === 'online' ? 'text-green-500' : 'text-gray-400'}`}>{u.state}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </aside>
+                {stories.map(s => (
+                  <button key={s.uid} onClick={() => { setActiveStoryGroup(s); setCurrentStoryIndex(0); }} className="shrink-0 flex flex-col items-center gap-1">
+                    <div className="w-16 h-16 p-[3px] border-2 border-emerald-500 rounded-full"><img src={s.photo} className="w-full h-full rounded-full object-cover" alt="" /></div>
+                    <span className="text-[10px] font-bold text-gray-500 truncate w-16 text-center">{s.displayName.split(' ')[0]}</span>
+                  </button>
+                ))}
+              </div>
 
-              <section className={`${!selectedUser ? 'hidden md:flex' : 'flex'} flex-1 flex-col bg-[#F9FAFB] h-full`}>
-                {selectedUser ? (
-                  <>
-                    <header className="px-8 py-5 bg-white border-b border-gray-100 flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <button onClick={() => setSelectedUser(null)} className="md:hidden"><ChevronLeft size={28} /></button>
-                        <img src={selectedUser.photo} className="w-10 h-10 rounded-full" alt="" />
-                        <div>
-                          <h3 className="font-black text-gray-900 text-sm">{selectedUser.displayName}</h3>
-                          <p className="text-[10px] text-green-500 font-bold uppercase">{selectedUser.state}</p>
+              {/* USERS LIST */}
+              <div className="flex-1 overflow-y-auto px-4 space-y-1">
+                {allUsers.filter(u => u.uid !== user.uid).map((u, i) => (
+                  <div key={u.uid || u.id || i} className="group flex items-center gap-2 pr-4">
+                    <button onClick={() => setSelectedUser(u)} className={`flex-1 flex items-center gap-4 p-4 rounded-[2rem] transition-all ${selectedUser?.uid === u.uid || selectedUser?.id === u.id ? "bg-emerald-50" : "hover:bg-gray-50"}`}>
+                      <div className="relative"><img src={u.photo} className="w-14 h-14 rounded-full object-cover shadow-sm" alt="" />{!u.isGroup && <div className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-4 border-white ${u.state === 'online' ? 'bg-green-500' : 'bg-gray-300'}`}></div>}</div>
+                      <div className="text-left flex-1"><p className="font-black text-gray-800 text-sm">{u.displayName}</p><p className={`text-[10px] font-black uppercase ${u.state === 'online' ? 'text-green-500' : 'text-gray-400'}`}>{u.isGroup ? "Խմբային չաթ" : u.state}</p></div>
+                    </button>
+                    {!u.isGroup && <button onClick={() => remove(databaseRef(db, `db/status/${u.uid}`))} className="opacity-0 group-hover:opacity-100 p-2 text-gray-300 hover:text-red-500 transition-all"><UserMinus size={18} /></button>}
+                  </div>
+                ))}
+              </div>
+            </aside>
+
+            {/* CHAT SECTION */}
+            <section className={`${!selectedUser ? 'hidden md:flex' : 'flex'} flex-1 flex-col bg-[#FDFDFD]`}>
+              {selectedUser ? (
+                <>
+                  <header className="px-8 py-6 flex items-center justify-between bg-white border-b border-gray-50">
+                    <div className="flex items-center gap-4">
+                      <button onClick={() => setSelectedUser(null)} className="md:hidden text-gray-400"><ChevronLeft size={28} /></button>
+                      <div className="relative"><img src={selectedUser.photo} className="w-12 h-12 rounded-full object-cover shadow-md" alt="" />{!selectedUser.isGroup && <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-4 border-white ${selectedUser.state === 'online' ? 'bg-green-500' : 'bg-gray-300'}`}></div>}</div>
+                      <div><h3 className="font-black text-gray-900 text-base">{selectedUser.displayName}</h3>{!selectedUser.isGroup ? <p className={`text-[10px] font-black uppercase tracking-widest ${selectedUser.state === 'online' ? 'text-green-500' : 'text-gray-400'}`}>{selectedUser.state}</p> : <button onClick={leaveGroup} className="text-[10px] font-black text-red-400 hover:text-red-600 uppercase">Լքել խումբը</button>}</div>
+                    </div>
+                    <div className="flex gap-3">
+                      {!selectedUser.isGroup && (
+                        <><button onClick={() => startCall("audio")} className="p-4 bg-emerald-50 text-emerald-500 rounded-2xl hover:bg-emerald-500 hover:text-white transition-all shadow-sm"><Phone size={20} /></button><button onClick={() => startCall("video")} className="p-4 bg-emerald-50 text-emerald-500 rounded-2xl hover:bg-emerald-500 hover:text-white transition-all shadow-sm"><Video size={20} /></button></>
+                      )}
+                      <button onClick={async () => { if (window.confirm("Ջնջե՞լ նամակագրությունը")) { const cid = selectedUser.isGroup ? `group_${selectedUser.id}` : [user.uid, selectedUser.uid].sort().join("_"); await remove(databaseRef(db, `db/chats/${cid}`)); } }} className="p-4 text-gray-300 hover:text-red-500 transition-all"><Trash2 size={20} /></button>
+                    </div>
+                  </header>
+
+                  <main className="flex-1 overflow-y-auto p-8 space-y-6">
+                    {messages.map(msg => (
+                      <div key={msg.id} className={`flex flex-col ${msg.senderId === user.uid ? "items-end" : "items-start"}`}>
+                        <div className={`group relative max-w-[85%]`}>
+                          {/* MODERN VOICE MESSAGE */}
+                          {msg.fileType === "voice" ? (
+                            <div className={`flex items-center gap-3 p-2 pr-4 rounded-[2rem] min-w-[240px] shadow-sm transition-all ${msg.senderId === user.uid ? "bg-gradient-to-br from-emerald-500 to-emerald-600 text-white" : "bg-white border border-emerald-100 text-emerald-900"}`}>
+                              <button onClick={() => toggleAudio(msg.id)} className={`w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-90 shadow-md ${msg.senderId === user.uid ? "bg-white text-emerald-600 hover:bg-emerald-50" : "bg-emerald-500 text-white hover:bg-emerald-600"}`}>
+                                {playingAudioId === msg.id ? <Pause size={20} fill="currentColor" /> : <Play size={20} className="ml-1" fill="currentColor" />}
+                              </button>
+                              <div className="flex-1 flex items-center gap-[3px] h-8 pt-1">
+                                {[...Array(18)].map((_, i) => (
+                                  <div key={i} className={`flex-1 rounded-full transition-all duration-300 ${playingAudioId === msg.id ? 'animate-pulse' : ''} ${msg.senderId === user.uid ? "bg-emerald-200/50" : "bg-emerald-200"}`} style={{ height: `${30 + Math.random() * 70}%`, animationDelay: `${i * 0.05}s` }}></div>
+                                ))}
+                              </div>
+                              <div className={`text-[10px] font-bold opacity-80 ${msg.senderId === user.uid ? "text-emerald-50" : "text-emerald-500"}`}><Mic size={14} /></div>
+                              <audio src={msg.file} id={`audio-${msg.id}`} playsInline className="hidden" />
+                            </div>
+                          ) : msg.fileType === "image" ? (
+                            <div className="rounded-[2rem] overflow-hidden shadow-md"><img src={msg.file} className="max-w-xs cursor-pointer" alt="" onClick={() => window.open(msg.file)} /></div>
+                          ) : msg.fileType === "video" ? (
+                            <video src={msg.file} controls playsInline className="max-w-xs rounded-2xl" />
+                          ) : (
+                            <div className={`px-6 py-3 rounded-[2rem] shadow-sm ${msg.senderId === user.uid ? "bg-gray-900 text-white rounded-tr-none" : "bg-white text-gray-800 shadow-md rounded-tl-none border border-gray-50"}`}>
+                              <p className="text-sm font-medium whitespace-pre-wrap">{msg.text}</p>
+                            </div>
+                          )}
+                          <span className="text-[9px] block mt-1 px-2 opacity-40 uppercase font-black">{msg.senderName && msg.senderId !== user.uid ? `${msg.senderName} • ` : ""}{msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}</span>
                         </div>
                       </div>
-                      <button onClick={startCall} className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-full"><Phone size={22} /></button>
-                    </header>
-                    <main className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-                      {messages.map((msg) => (
-                        <div key={msg.id} className={`flex ${msg.senderId === user.uid ? "justify-end" : "justify-start"}`}>
-                          <div className={`px-5 py-3 rounded-[1.75rem] max-w-[80%] ${msg.senderId === user.uid ? "bg-gray-900 text-white" : "bg-white text-gray-800 border"}`}>
-                            <p className="text-sm font-medium">{msg.text}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </main>
-                    <footer className="p-6 bg-white">
-                      <div className="flex items-center gap-4 bg-gray-100 rounded-[2rem] px-6 py-3">
-                        <input type="text" value={message} onChange={(e) => setMessage(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage()} className="flex-1 bg-transparent border-none py-3 focus:outline-none" placeholder="Գրեք հաղորդագրություն..." />
-                        <button onClick={sendMessage} className="p-3 bg-emerald-500 text-white rounded-2xl"><Send size={22} /></button>
+                    ))}
+                  </main>
+
+                  <footer className="p-8 bg-white border-t border-gray-50">
+                    <div className="flex items-center gap-4 bg-gray-100 rounded-[2.5rem] px-6 py-2">
+                      <div className="flex gap-2">
+                        <button onClick={() => fileInputRef.current.click()} className="p-2 text-gray-400 hover:text-emerald-500"><ImageIcon size={22} /></button>
+                        <input type="file" ref={fileInputRef} onChange={handleFileUpload} hidden />
+                        <button onMouseDown={startRecording} onMouseUp={stopRecording} onTouchStart={(e) => { e.preventDefault(); startRecording(); }} onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }} className={`p-2 transition-all ${isRecording ? 'text-red-500 scale-150 animate-pulse' : 'text-gray-400 hover:text-emerald-500'}`}><Mic size={22} /></button>
                       </div>
-                    </footer>
-                  </>
-                ) : (
-                  <div className="flex-1 flex items-center justify-center text-gray-300 uppercase font-black text-xs tracking-widest italic">Ընտրեք որևէ մեկին խոսակցություն սկսելու համար</div>
-                )}
-              </section>
-            </div>
+                      <input type="text" value={message} onChange={(e) => setMessage(e.target.value)} onKeyDown={(e) => e.key === "Enter" && message.trim() && sendMsg(message)} className="flex-1 bg-transparent py-4 outline-none text-sm font-medium" placeholder="Գրեք հաղորդագրություն..." />
+                      <button onClick={() => message.trim() && sendMsg(message)} className="p-4 bg-emerald-500 text-white rounded-full hover:bg-emerald-600 transition-all shadow-lg active:scale-90"><Send size={20} /></button>
+                    </div>
+                  </footer>
+                </>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center"><div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 mb-4 animate-pulse"><Users size={40} /></div><p className="text-gray-300 font-black uppercase text-xs tracking-[0.3em]">Ընտրեք զրուցակից</p></div>
+              )}
+            </section>
           </div>
         )}
       </main>
+      <style dangerouslySetInnerHTML={{ __html: `.no-scrollbar::-webkit-scrollbar { display: none; } * { -webkit-tap-highlight-color: transparent; }` }} />
     </div>
   );
 }

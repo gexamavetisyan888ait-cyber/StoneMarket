@@ -1,9 +1,9 @@
-// src/lib/firebase.js
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getDatabase } from "firebase/database";
-import { getAuth, GoogleAuthProvider } from "firebase/auth"; // Ավելացված է
+import { getStorage } from "firebase/storage"; // Սա անհրաժեշտ է Storage-ի համար
 
+// Քո Firebase կոնֆիգուրացիան
 const firebaseConfig = {
   apiKey: "AIzaSyDGCOksd0BiEQgOhXUXTdgrxz55NJxm0mI",
   authDomain: "stonemarket-7f764.firebaseapp.com",
@@ -14,12 +14,13 @@ const firebaseConfig = {
   appId: "1:544977633052:web:ccc76b682eed8563b8c4d9",
   measurementId: "G-BGKF4XMEXC"
 };
-
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 
-// Էքսպորտ ենք անում բոլոր անհրաժեշտ մոդուլները
+// Export-ներ, որոնք օգտագործվում են Components-ների մեջ
+export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
 export const db = getDatabase(app);
-export const auth = getAuth(app); // Ավելացված է
-export const googleProvider = new GoogleAuthProvider(); // Ավելացված է
+export const storage = getStorage(app); // Այս տողն էր պակասում քո Build-ի համար
+
+export default app;
