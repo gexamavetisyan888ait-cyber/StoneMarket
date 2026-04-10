@@ -1,10 +1,17 @@
 import React from "react";
 
-export default function GroupInfoSection() {
+/**
+ * GroupInfoSection կոմպոնենտը ներկայացնում է ընկերությունների խմբի
+ * տարբեր ճյուղերի և միջոցառումների մանրամասն նկարագրությունը:
+ */
+const GroupInfoSection: React.FC = () => {
   return (
     <main className="min-h-screen font-sans selection:bg-[#00d691] selection:text-white overflow-x-hidden">
+      {/* Առաջին բաժին - Սթոուն Գրուպ և Սարսարտ Սթոուն */}
       <section className="bg-[#f8f9fa] py-20 px-6">
         <div className="max-w-7xl mx-auto space-y-24">
+          
+          {/* ՍԹՈՈՆ ԳՐՈՒՊ */}
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="order-2 md:order-1">
               <h2 className="text-2xl font-bold mb-6 tracking-tight uppercase">
@@ -25,18 +32,19 @@ export default function GroupInfoSection() {
             <div className="order-1 md:order-2">
               <img
                 src="https://www.stonemarket.am/_next/image?url=%2Fimages%2Fproject1.jpeg&w=3840&q=75"
-                alt="Quarry"
-                className="w-full h-80 object-cover rounded-4xl shadow-xl hover:scale-[1.02] transition-transform duration-300"
+                alt="Stone Group Quarry"
+                className="w-full h-80 object-cover rounded-[2rem] shadow-xl hover:scale-[1.02] transition-transform duration-300"
               />
             </div>
           </div>
 
+          {/* ՍԱՐՍԱՐՏ ՍԹՈՈՆ */}
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <img
                 src="https://www.stonemarket.am/_next/image?url=%2Fimages%2Fproject2.webp&w=3840&q=75"
-                alt="Basalt Quarry"
-                className="w-full h-80 object-cover rounded-4xl shadow-xl hover:scale-[1.02] transition-transform duration-300"
+                alt="Sarsart Stone Basalt"
+                className="w-full h-80 object-cover rounded-[2rem] shadow-xl hover:scale-[1.02] transition-transform duration-300"
               />
             </div>
             <div>
@@ -45,7 +53,7 @@ export default function GroupInfoSection() {
               </h2>
               <p className="text-gray-600 text-sm md:text-base leading-relaxed">
                 Հայաստանի հարստություններից ու սիմվոլներից մեկը՝ սև տուֆը, չէր
-                կարող ներգրավված չլինել մեր գործունեության մեջ։ «Սարարտ
+                կարող ներգրավված չլինել մեր գործունեության մեջ։ «Սարսարտ
                 Սթոուն»-ն՝ ընկերությունների խմբին պատկանող նորաբաց
                 կազմակերպություն է, որը մասնագիտացած է սև տուֆի
                 արդյունաբերության մեջ: Մեր մասնագետներն իրենց տարիների ձեռքբերած
@@ -57,8 +65,11 @@ export default function GroupInfoSection() {
         </div>
       </section>
 
+      {/* Երկրորդ բաժին - Սթոուն Հոլդինգ և Փառատոն */}
       <section className="bg-white py-20 px-6">
         <div className="max-w-7xl mx-auto space-y-24">
+          
+          {/* ՍԹՈՈՆ ՀՈԼԴԻՆԳ */}
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="order-2 md:order-1">
               <h2 className="text-2xl font-bold mb-6 tracking-tight uppercase">
@@ -76,18 +87,21 @@ export default function GroupInfoSection() {
             <div className="order-1 md:order-2">
               <img
                 src="https://www.stonemarket.am/_next/image?url=%2Fimages%2Fproject3.jpeg&w=3840&q=75"
-                className="w-full h-80 object-cover rounded-4xl shadow-xl hover:scale-[1.02] transition-transform duration-300"
-                alt="Processing"
+                alt="Stone Holding Processing"
+                className="w-full h-80 object-cover rounded-[2rem] shadow-xl hover:scale-[1.02] transition-transform duration-300"
               />
             </div>
           </div>
 
+          {/* ՀԱՅԿԱԿԱՆ ՔԱՐԻ ՓԱՌԱՏՈՆ */}
           <div className="grid md:grid-cols-2 gap-12 items-center">
-            <img
-              src="https://www.stonemarket.am/_next/image?url=%2Fimages%2Fproject4.JPG&w=3840&q=75"
-              className="w-full h-80 object-cover rounded-xl shadow-xl hover:scale-[1.02] transition-transform duration-300"
-              alt="Festival"
-            />
+            <div>
+              <img
+                src="https://www.stonemarket.am/_next/image?url=%2Fimages%2Fproject4.JPG&w=3840&q=75"
+                alt="Armenian Stone Festival"
+                className="w-full h-80 object-cover rounded-[2rem] shadow-xl hover:scale-[1.02] transition-transform duration-300"
+              />
+            </div>
             <div>
               <h2 className="text-2xl font-bold mb-6 tracking-tight uppercase">
                 ՀԱՅԿԱԿԱՆ ՔԱՐԻ ՓԱՌԱՏՈՆ
@@ -98,7 +112,7 @@ export default function GroupInfoSection() {
                 քարերի առանձնահատկությունները, մշակման և կիրառման ոլորտները,
                 ինչպես նաև ընդգծել դրանց մշակութային ժառանգությունը: Փառատոնին
                 մասնակցում են ոլորտի առաջատար ընկերություններ,
-                դիզայներներ,ճարտարապետներ և արտադրողներ աշխարհի տարբեր
+                դիզայներներ, ճարտարապետներ և արտադրողներ աշխարհի տարբեր
                 երկրներից, որոնք ցուցադրում են իրենց աշխատանքները, ներկայացնում
                 նորարարական լուծումներ և փոխանակվում փորձով: Փառատոնի ընթացքում
                 տեղի են ունենում նաև տարբեր միջոցառումներ, որոնք նվիրված են
@@ -110,4 +124,6 @@ export default function GroupInfoSection() {
       </section>
     </main>
   );
-}
+};
+
+export default GroupInfoSection;
